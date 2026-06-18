@@ -1,4 +1,4 @@
-import {Notice, Setting, ToggleComponent} from 'obsidian'
+import {Notice, Setting} from 'obsidian'
 
 export type OutputData = string | boolean | undefined
 
@@ -57,11 +57,12 @@ export interface GenericModalInput {
 abstract class Selector {
   toggleActive: boolean = false
 
-  protected constructor(readonly setting: Setting,
-                        private readonly anyData: AnyInput,
-                        public output: Record<string, OutputData>,
-                        public readonly callback: GenericModal,
-                        public readonly isOptional: boolean) {
+  protected constructor(
+    readonly setting: Setting,
+    private readonly anyData: AnyInput,
+    public output: Record<string, OutputData>,
+    public readonly callback: GenericModal,
+    public readonly isOptional: boolean) {
   }
 
   private validate(value: string): boolean {
@@ -92,11 +93,11 @@ abstract class Selector {
   addToggle() {
     if (!this.isOptional) return;
     this.setting.addToggle(tc => tc.setValue(this.toggleActive)
-    .onChange(async (active: boolean) => {
-      if (!active) this.revert()
-      this.toggleActive = active
-      this.draw()
-    }))
+      .onChange(async (active: boolean) => {
+        if (!active) this.revert()
+        this.toggleActive = active
+        this.draw()
+      }))
   }
 
   abstract draw(): void
@@ -121,10 +122,10 @@ class BooleanSelector extends Selector {
     super.addDefaultName()
 
     setting.addToggle(tc => tc.setValue(initialValue)
-    .onChange(async (active: boolean) => {
-      if (active === initialValue) this.revert()
-      else this.write(active)
-    }))
+      .onChange(async (active: boolean) => {
+        if (active === initialValue) this.revert()
+        else this.write(active)
+      }))
 
     this.addExplanationAsTooltip()
   }
@@ -140,7 +141,7 @@ class ColorSelector extends Selector {
     setting.clear()
     super.addDefaultName()
     setting.addColorPicker(color => color.setValue(data.current)
-    .onChange(async (value: string) => this.write(value)))
+      .onChange(async (value: string) => this.write(value)))
     this.addToggle()
     this.addExplanationAsTooltip()
   }
@@ -157,9 +158,9 @@ class DropdownSelector extends Selector {
     setting.clear()
     super.addDefaultName()
     setting.addDropdown((button) => button
-    .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-    .onChange(async (value: string) => this.write(value))
-    .setDisabled(!this.toggleActive))
+      .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
+      .onChange(async (value: string) => this.write(value))
+      .setDisabled(!this.toggleActive))
 
     this.addToggle()
     this.addExplanationAsTooltip()
@@ -177,9 +178,9 @@ class StringSelector extends Selector {
     super.addDefaultName()
 
     setting.addText(tc => tc
-    .setValue(data.current)
-    .onChange(async (value: string) => this.write(value))
-    .setDisabled(this.isOptional && !this.toggleActive))
+      .setValue(data.current)
+      .onChange(async (value: string) => this.write(value))
+      .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
     super.addExplanationAsTooltip()
@@ -254,17 +255,17 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlockContent()
 
     const setting = new Setting(this.contentEl)
-    .setName('Output')
-    .addTextArea(cb => {
+      .setName('Output')
+      .addTextArea(cb => {
 
-      cb.setValue(codeBlockContent).setDisabled(true)
+        cb.setValue(codeBlockContent).setDisabled(true)
 
-      this.textElement = cb.inputEl
+        this.textElement = cb.inputEl
 
-      cb.inputEl.style.width = '100%'
-      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-    })
+        cb.inputEl.style.width = '100%'
+        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+      })
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
