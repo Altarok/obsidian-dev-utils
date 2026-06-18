@@ -1,6 +1,6 @@
 export {GenericModal} from './generic-modal';
 
-// Export the data structure types for full type safety in your plugins
+// Export data structure types for full type safety
 export type {
   OutputData,
   AnyInput,
