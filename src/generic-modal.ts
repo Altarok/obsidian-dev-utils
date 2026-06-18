@@ -89,12 +89,12 @@ abstract class Selector {
 
   addToggle() {
     this.setting.addToggle(tc => tc
-      .setValue(this.toggleActive)
-      .onChange(async (active: boolean) => {
-        if (!active) this.revert()
-        this.toggleActive = active
-        this.draw()
-      }))
+    .setValue(this.toggleActive)
+    .onChange(async (active: boolean) => {
+      if (!active) this.revert()
+      this.toggleActive = active
+      this.draw()
+    }))
   }
 
   abstract draw(): void
@@ -119,10 +119,10 @@ class BooleanSelector extends Selector {
     super.addDefaultName()
 
     setting.addToggle(tc => tc.setValue(initialValue)
-      .onChange(async (active: boolean) => {
-        if (active === initialValue) this.revert()
-        else this.write(active)
-      }))
+    .onChange(async (active: boolean) => {
+      if (active === initialValue) this.revert()
+      else this.write(active)
+    }))
 
     this.addExplanationAsTooltip()
   }
@@ -138,7 +138,7 @@ class ColorSelector extends Selector {
     setting.clear()
     super.addDefaultName()
     setting.addColorPicker(color => color.setValue(data.current)
-      .onChange(async (value: string) => this.write(value)))
+    .onChange(async (value: string) => this.write(value)))
     this.addToggle()
     this.addExplanationAsTooltip()
   }
@@ -155,9 +155,9 @@ class DropdownSelector extends Selector {
     setting.clear()
     super.addDefaultName()
     setting.addDropdown((button) => button
-      .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-      .onChange(async (value: string) => this.write(value))
-      .setDisabled(!this.toggleActive))
+    .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
+    .onChange(async (value: string) => this.write(value))
+    .setDisabled(!this.toggleActive))
 
     this.addToggle()
     this.addExplanationAsTooltip()
@@ -175,9 +175,9 @@ class StringSelector extends Selector {
     super.addDefaultName()
 
     setting.addText(tc => tc
-      .setValue(data.current)
-      .onChange(async (value: string) => this.write(value))
-      .setDisabled(!this.toggleActive))
+    .setValue(data.current)
+    .onChange(async (value: string) => this.write(value))
+    .setDisabled(!this.toggleActive))
 
     super.addToggle()
     super.addExplanationAsTooltip()
@@ -193,7 +193,7 @@ class MainInputSelector extends Selector {
     const {setting, data} = this
     setting.clear()
     setting.setName(`Please input ${data.name}.`)
-      .addText(tc => tc.setValue('').onChange(async (value: string) => this.write(value)))
+    .addText(tc => tc.setValue('').onChange(async (value: string) => this.write(value)))
 
     this.addExplanationAsTooltip()
   }
@@ -236,17 +236,17 @@ export class GenericModal {
 
   private createTextArea(value: string) {
     const setting = new Setting(this.contentEl)
-      .setName('Output')
-      .addTextArea(cb => {
+    .setName('Output')
+    .addTextArea(cb => {
 
-        cb.setValue(value).setDisabled(true)
+      cb.setValue(value).setDisabled(true)
 
-        this.textElement = cb.inputEl
+      this.textElement = cb.inputEl
 
-        cb.inputEl.style.width = '100%'
-        cb.inputEl.style.height = '150px' // Set a generous default height for the code block block
-        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-      })
+      cb.inputEl.style.width = '100%'
+      cb.inputEl.style.height = '100px' // Set a generous default height for the code block
+      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+    })
 
     // 2. Clear Obsidian's default flex alignment limits on the setting container control block
     setting.controlEl.style.width = '100%'

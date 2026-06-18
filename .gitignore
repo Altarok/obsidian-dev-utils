@@ -1,0 +1,9 @@
+# NPM
+/node_modules
+.npm
+# IDE junk
+.idea
+.vscode
+# System junk files
+.DS_Store
+Thumbs.db
