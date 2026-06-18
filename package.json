@@ -1,0 +1,17 @@
+{
+  "name": "@Altarok/obsidian-dec-utils",
+  "version": "1.0.0",
+  "description": "Personal reusable Obsidian modal utilities",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc"
+  },
+  "peerDependencies": {
+    "obsidian": "^1.5.0"
+  },
+  "devDependencies": {
+    "obsidian": "^1.5.0",
+    "typescript": "^5.0.0"
+  }
+}
