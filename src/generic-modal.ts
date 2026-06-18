@@ -1,6 +1,6 @@
 import {Notice, Setting} from 'obsidian'
 
-export type OutputData = string | boolean | undefined
+export type OutputData = string | boolean | number | undefined
 
 function toRecord(strings: readonly string[]): Record<string, string> {
   let record: Record<string, string> = {}
@@ -13,7 +13,7 @@ export interface BaseInput {
   readonly name: string
   readonly key: string
   readonly explanation?: string // optional long description for first time users
-  readonly current?: string | boolean // current value
+  readonly current?: string | boolean | number // current value
   readonly validationPattern?: RegExp
 }
 
@@ -36,13 +36,22 @@ export interface DropdownInput extends BaseInput {
   readonly dropdownOptions: readonly string[]
 }
 
+export interface SliderInput extends BaseInput {
+  type: 'slider'
+  current: number
+  from: number
+  to: number
+  step: number
+  validationPattern?: never
+}
+
 export interface StringInput extends BaseInput {
   type: 'string'
   current: string
   validationPattern?: RegExp // optional validation pattern
 }
 
-export type AnyInput = BooleanInput | ColorInput | DropdownInput | StringInput;
+export type AnyInput = BooleanInput | ColorInput | DropdownInput | SliderInput | StringInput;
 
 export interface GenericModalInput {
   readonly title?: string
@@ -78,7 +87,6 @@ abstract class Selector {
   }
 
   revert() {
-    // if (this.output?.[this.anyData.key])
     this.output[this.anyData.key] = undefined
     this.callback.updateTextArea()
   }
@@ -167,6 +175,27 @@ class DropdownSelector extends Selector {
   }
 }
 
+class SliderSelector extends Selector {
+  constructor(setting: Setting, readonly data: SliderInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
+  }
+
+  draw() {
+    const {setting, data} = this
+    setting.clear()
+    super.addDefaultName()
+
+    setting.addSlider(sc => sc
+    .setValue(data.current)
+    .setLimits(data.from, data.to, data.step)
+    .onChange(async (value: number) => this.write(value))
+    .setDisabled(this.isOptional && !this.toggleActive))
+
+    super.addToggle()
+    super.addExplanationAsTooltip()
+  }
+}
+
 class StringSelector extends Selector {
   constructor(setting: Setting, readonly data: StringInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
@@ -195,50 +224,42 @@ export class GenericModal {
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
 
-  display() {
+  createSelectors(inputs: Readonly<AnyInput>[], isOptional: boolean) {
     const {contentEl, data} = this
     const output = data.output;
 
-    new Setting(contentEl).setName(data.title ?? data.pluginName ? data.pluginName + ' ' + 'Code block creator' : 'Code block creator').setHeading()
-
-    for (const overwriteSetting of data.mandatory) switch (overwriteSetting.type) {
-      // new MainInputSelector(new Setting(contentEl), overwriteSetting as MainInput, output, this).draw()
+    for (const input of inputs) switch (input.type) {
       case 'boolean':
-        new BooleanSelector(new Setting(contentEl), overwriteSetting as BooleanInput, output, this, false).draw()
+        new BooleanSelector(new Setting(contentEl), input as BooleanInput, output, this, isOptional).draw()
         break;
       case 'color':
-        new ColorSelector(new Setting(contentEl), overwriteSetting as ColorInput, output, this, false).draw()
+        new ColorSelector(new Setting(contentEl), input as ColorInput, output, this, isOptional).draw()
         break;
       case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), overwriteSetting as DropdownInput, output, this, false).draw()
+        new DropdownSelector(new Setting(contentEl), input as DropdownInput, output, this, isOptional).draw()
+        break;
+      case 'slider':
+        new SliderSelector(new Setting(contentEl), input as SliderInput, output, this, isOptional).draw()
         break;
       case 'string':
-        new StringSelector(new Setting(contentEl), overwriteSetting as StringInput, output, this, false).draw()
+        new StringSelector(new Setting(contentEl), input as StringInput, output, this, isOptional).draw()
         break;
     }
+  }
 
+  display() {
+    const {contentEl, data} = this
+
+    new Setting(contentEl).setName(data.title ?? data.pluginName ? data.pluginName + ' ' + 'Code block creator' : 'Code block creator').setHeading()
+
+    this.createSelectors(data.mandatory, false)
 
     new Setting(contentEl).setName('Select the global settings you want to overwrite for your code block.')
 
-    for (const overwriteSetting of data.optional) switch (overwriteSetting.type) {
-      case 'boolean':
-        new BooleanSelector(new Setting(contentEl), overwriteSetting as BooleanInput, output, this, true).draw()
-        break;
-      case 'color':
-        new ColorSelector(new Setting(contentEl), overwriteSetting as ColorInput, output, this, true).draw()
-        break;
-      case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), overwriteSetting as DropdownInput, output, this, true).draw()
-        break;
-      case 'string':
-        new StringSelector(new Setting(contentEl), overwriteSetting as StringInput, output, this, true).draw()
-        break;
-      /* no 'main' here */
-    }
+    this.createSelectors(data.optional, true)
 
     /* Create text area */
     this.createTextArea()
-
 
     /* create live SVG */
     this.previewContainerEl = contentEl.createDiv();
