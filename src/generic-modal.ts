@@ -1,4 +1,4 @@
-import {Notice, Setting} from 'obsidian'
+import {Notice, Setting, ToggleComponent} from 'obsidian'
 
 export type OutputData = string | boolean | undefined
 
@@ -57,6 +57,7 @@ export interface GenericModalInput {
   readonly codeBlockId: string
   readonly overwriteSettings: Readonly<AnyInput>[]
   output: Record<string, OutputData>
+  readonly onUpdatePreview?: (currentCode: string, previewEl: HTMLDivElement) => void
 }
 
 abstract class Selector {
@@ -88,8 +89,7 @@ abstract class Selector {
   }
 
   addToggle() {
-    this.setting.addToggle(tc => tc
-    .setValue(this.toggleActive)
+    this.setting.addToggle(tc => tc.setValue(this.toggleActive)
     .onChange(async (active: boolean) => {
       if (!active) this.revert()
       this.toggleActive = active
@@ -201,6 +201,7 @@ class MainInputSelector extends Selector {
 
 export class GenericModal {
   private textElement!: HTMLTextAreaElement
+  private previewContainerEl!: HTMLDivElement;
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
@@ -231,7 +232,18 @@ export class GenericModal {
       /* no 'main' here */
     }
 
+    /* Create text area */
     this.createTextArea(`\`\`\`${data.codeBlockId}\n\`\`\``)
+
+
+    /* create live SVG */
+    this.previewContainerEl = contentEl.createDiv();
+    this.previewContainerEl.style.width = '100%';
+    this.previewContainerEl.style.display = 'flex';
+    this.previewContainerEl.style.justifyContent = 'center';
+    this.previewContainerEl.style.marginBottom = '1.5rem';
+
+    this.updateTextArea();
   }
 
   private createTextArea(value: string) {
@@ -266,23 +278,19 @@ export class GenericModal {
 
     /* add main options */
     for (const setting of owSettings) {
-      if (!setting) continue
-      if (setting.type !== 'main') continue
-
+      if (!setting || setting.type !== 'main') continue
       const value = this.data.output[setting.key]
       if (value) code += `${value}\n`
     }
 
     /* add other options */
     for (const setting of owSettings) {
-      if (!setting) continue
-      if (setting.type === 'main') continue
+      if (!setting || setting.type === 'main') continue
       const localValue = this.data.output[setting.key]
       if (localValue === undefined || localValue === '') continue
 
       const key: string = setting.key
       const globalValue = setting.current
-
       if (globalValue === localValue) continue
 
       code += `${key}: ${localValue}\n`
@@ -290,6 +298,11 @@ export class GenericModal {
 
     if (this.textElement) {
       this.textElement.value = `\`\`\`${this.data.codeBlockId}\n${code}\`\`\``
+    }
+
+    // 2. Trigger the live preview renderer if it was passed in
+    if (this.data.onUpdatePreview && this.previewContainerEl) {
+      this.data.onUpdatePreview(code, this.previewContainerEl)
     }
   }
 }
