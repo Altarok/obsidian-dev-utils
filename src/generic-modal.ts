@@ -8,7 +8,7 @@ function toRecord(strings: readonly string[]): Record<string, string> {
   return record
 }
 
-interface BaseInput {
+export interface BaseInput {
   readonly type: string
   readonly name: string
   readonly key: string
@@ -18,32 +18,32 @@ interface BaseInput {
   readonly validationPattern?: RegExp
 }
 
-interface BooleanInput extends BaseInput {
+export interface BooleanInput extends BaseInput {
   type: 'boolean'
   current: boolean
   validationPattern?: never
 }
 
-interface ColorInput extends BaseInput {
+export interface ColorInput extends BaseInput {
   type: 'color'
   current: string
   validationPattern?: never
 }
 
-interface DropdownInput extends BaseInput {
+export interface DropdownInput extends BaseInput {
   type: 'dropdown'
   current: string
   validationPattern?: never
   readonly dropdownOptions: readonly string[]
 }
 
-interface StringInput extends BaseInput {
+export interface StringInput extends BaseInput {
   type: 'string'
   current: string
   validationPattern?: RegExp // optional validation pattern
 }
 
-interface MainInput extends BaseInput {
+export interface MainInput extends BaseInput {
   type: 'main'
   mandatory: true
   current?: never
@@ -52,7 +52,7 @@ interface MainInput extends BaseInput {
 
 export type AnyInput = BooleanInput | ColorInput | DropdownInput | StringInput | MainInput;
 
-interface GenericModalInput {
+export interface GenericModalInput {
   readonly description: string
   readonly codeBlockId: string
   readonly overwriteSettings: Readonly<AnyInput>[]
