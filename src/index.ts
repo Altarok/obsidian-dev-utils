@@ -8,6 +8,8 @@ export type {
   BooleanInput,
   ColorInput,
   DropdownInput,
+  DropdownMultiInput,
+  SliderInput,
   StringInput,
   GenericModalInput
 } from './generic-modal';
