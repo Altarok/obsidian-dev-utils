@@ -9,6 +9,5 @@ export type {
   ColorInput,
   DropdownInput,
   StringInput,
-  MainInput,
   GenericModalInput
 } from './generic-modal';
