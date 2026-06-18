@@ -14,7 +14,6 @@ export interface BaseInput {
   readonly key: string
   readonly explanation?: string // optional long description for first time users
   readonly current?: string | boolean // current value
-  readonly mandatory?: boolean // if true, user has to input these
   readonly validationPattern?: RegExp
 }
 
@@ -43,27 +42,26 @@ export interface StringInput extends BaseInput {
   validationPattern?: RegExp // optional validation pattern
 }
 
-export interface MainInput extends BaseInput {
-  type: 'main'
-  mandatory: true
-  current?: never
-  validationPattern?: RegExp // optional validation pattern
-}
-
-export type AnyInput = BooleanInput | ColorInput | DropdownInput | StringInput | MainInput;
+export type AnyInput = BooleanInput | ColorInput | DropdownInput | StringInput;
 
 export interface GenericModalInput {
-  readonly description: string
-  readonly codeBlockId: string
-  readonly overwriteSettings: Readonly<AnyInput>[]
+  readonly title?: string
+  readonly pluginName?: string
+  readonly mandatory: Readonly<AnyInput>[]
+  readonly optional: Readonly<AnyInput>[]
   output: Record<string, OutputData>
-  readonly onUpdatePreview?: (currentCode: string, previewEl: HTMLDivElement) => void
+  readonly createCodeBlock: () => string
+  readonly onUpdatePreview?: (previewEl: HTMLDivElement) => void
 }
 
 abstract class Selector {
   toggleActive: boolean = false
 
-  protected constructor(readonly setting: Setting, private readonly anyData: AnyInput, public output: Record<string, OutputData>, public readonly callback: GenericModal) {
+  protected constructor(readonly setting: Setting,
+                        private readonly anyData: AnyInput,
+                        public output: Record<string, OutputData>,
+                        public readonly callback: GenericModal,
+                        public readonly isOptional: boolean) {
   }
 
   private validate(value: string): boolean {
@@ -85,10 +83,14 @@ abstract class Selector {
   }
 
   addDefaultName() {
-    this.setting.setName(`Overwrite ${this.anyData.name}? Preset value is: ${this.anyData.current === '' ? 'none' : this.anyData.current}`)
+    if (this.isOptional)
+      this.setting.setName(`Overwrite ${this.anyData.name}? Preset value is: ${this.anyData.current === '' ? 'none' : this.anyData.current}`)
+    else
+      this.setting.setName(`Please input ${this.anyData.name}.`)
   }
 
   addToggle() {
+    if (!this.isOptional) return;
     this.setting.addToggle(tc => tc.setValue(this.toggleActive)
     .onChange(async (active: boolean) => {
       if (!active) this.revert()
@@ -108,8 +110,8 @@ abstract class Selector {
 class BooleanSelector extends Selector {
   private readonly initialValue: boolean
 
-  constructor(setting: Setting, readonly data: BooleanInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback)
+  constructor(setting: Setting, readonly data: BooleanInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
     this.initialValue = data.current
   }
 
@@ -129,8 +131,8 @@ class BooleanSelector extends Selector {
 }
 
 class ColorSelector extends Selector {
-  constructor(setting: Setting, readonly data: ColorInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback)
+  constructor(setting: Setting, readonly data: ColorInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
   }
 
   draw() {
@@ -146,8 +148,8 @@ class ColorSelector extends Selector {
 
 class DropdownSelector extends Selector {
 
-  constructor(setting: Setting, public data: DropdownInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback)
+  constructor(setting: Setting, public data: DropdownInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
   }
 
   draw() {
@@ -165,8 +167,8 @@ class DropdownSelector extends Selector {
 }
 
 class StringSelector extends Selector {
-  constructor(setting: Setting, readonly data: StringInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback)
+  constructor(setting: Setting, readonly data: StringInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
   }
 
   draw() {
@@ -177,31 +179,17 @@ class StringSelector extends Selector {
     setting.addText(tc => tc
     .setValue(data.current)
     .onChange(async (value: string) => this.write(value))
-    .setDisabled(!this.toggleActive))
+    .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
     super.addExplanationAsTooltip()
   }
 }
 
-class MainInputSelector extends Selector {
-  constructor(setting: Setting, readonly data: MainInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback)
-  }
-
-  draw() {
-    const {setting, data} = this
-    setting.clear()
-    setting.setName(`Please input ${data.name}.`)
-    .addText(tc => tc.setValue('').onChange(async (value: string) => this.write(value)))
-
-    this.addExplanationAsTooltip()
-  }
-}
-
 export class GenericModal {
   private textElement!: HTMLTextAreaElement
   private previewContainerEl!: HTMLDivElement;
+  private adjustHeight!: () => void;
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
@@ -210,30 +198,45 @@ export class GenericModal {
     const {contentEl, data} = this
     const output = data.output;
 
-    for (const overwriteSetting of data.overwriteSettings) if (overwriteSetting.type === 'main') {
-      new MainInputSelector(new Setting(contentEl), overwriteSetting as MainInput, output, this).draw()
-    }
+    new Setting(contentEl).setName(data.title ?? data.pluginName ? data.pluginName + ' ' + 'Code block creator' : 'Code block creator').setHeading()
 
-    new Setting(contentEl).setName(data.description)
-
-    for (const overwriteSetting of data.overwriteSettings) switch (overwriteSetting.type) {
+    for (const overwriteSetting of data.mandatory) switch (overwriteSetting.type) {
+      // new MainInputSelector(new Setting(contentEl), overwriteSetting as MainInput, output, this).draw()
       case 'boolean':
-        new BooleanSelector(new Setting(contentEl), overwriteSetting as BooleanInput, output, this).draw()
+        new BooleanSelector(new Setting(contentEl), overwriteSetting as BooleanInput, output, this, false).draw()
         break;
       case 'color':
-        new ColorSelector(new Setting(contentEl), overwriteSetting as ColorInput, output, this).draw()
+        new ColorSelector(new Setting(contentEl), overwriteSetting as ColorInput, output, this, false).draw()
         break;
       case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), overwriteSetting as DropdownInput, output, this).draw()
+        new DropdownSelector(new Setting(contentEl), overwriteSetting as DropdownInput, output, this, false).draw()
         break;
       case 'string':
-        new StringSelector(new Setting(contentEl), overwriteSetting as StringInput, output, this).draw()
+        new StringSelector(new Setting(contentEl), overwriteSetting as StringInput, output, this, false).draw()
+        break;
+    }
+
+
+    new Setting(contentEl).setName('Select the global settings you want to overwrite for your code block.')
+
+    for (const overwriteSetting of data.optional) switch (overwriteSetting.type) {
+      case 'boolean':
+        new BooleanSelector(new Setting(contentEl), overwriteSetting as BooleanInput, output, this, true).draw()
+        break;
+      case 'color':
+        new ColorSelector(new Setting(contentEl), overwriteSetting as ColorInput, output, this, true).draw()
+        break;
+      case 'dropdown':
+        new DropdownSelector(new Setting(contentEl), overwriteSetting as DropdownInput, output, this, true).draw()
+        break;
+      case 'string':
+        new StringSelector(new Setting(contentEl), overwriteSetting as StringInput, output, this, true).draw()
         break;
       /* no 'main' here */
     }
 
     /* Create text area */
-    this.createTextArea(`\`\`\`${data.codeBlockId}\n\`\`\``)
+    this.createTextArea()
 
 
     /* create live SVG */
@@ -246,19 +249,38 @@ export class GenericModal {
     this.updateTextArea();
   }
 
-  private createTextArea(value: string) {
+  private createTextArea() {
+
+    const codeBlockContent: string = this.createCodeBlockContent()
+
     const setting = new Setting(this.contentEl)
     .setName('Output')
     .addTextArea(cb => {
 
-      cb.setValue(value).setDisabled(true)
+      cb.setValue(codeBlockContent).setDisabled(true)
 
       this.textElement = cb.inputEl
 
       cb.inputEl.style.width = '100%'
-      cb.inputEl.style.height = '100px' // Set a generous default height for the code block
+      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
       cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
     })
+
+    this.adjustHeight = () => {
+      this.textElement.style.height = 'auto'
+      this.textElement.style.height = `${this.textElement.scrollHeight}px`
+    };
+
+    // this.textElement.addEventListener('input', this.adjustHeight);
+
+    this.adjustHeight()
+
+    new Setting(this.contentEl).addButton(bc => bc
+      .setIcon('copy')
+      .onClick(async () => this.copyToClipboard())
+      .setTooltip('Copy entire code block to clipboard', {'delay': -1})
+      .setButtonText('Copy')
+    )
 
     // 2. Clear Obsidian's default flex alignment limits on the setting container control block
     setting.controlEl.style.width = '100%'
@@ -272,37 +294,31 @@ export class GenericModal {
   }
 
   updateTextArea() {
-    new Notice('update')
-    let code = ''
-    const owSettings: Readonly<AnyInput>[] = this.data.overwriteSettings
-
-    /* add main options */
-    for (const setting of owSettings) {
-      if (!setting || setting.type !== 'main') continue
-      const value = this.data.output[setting.key]
-      if (value) code += `${value}\n`
-    }
-
-    /* add other options */
-    for (const setting of owSettings) {
-      if (!setting || setting.type === 'main') continue
-      const localValue = this.data.output[setting.key]
-      if (localValue === undefined || localValue === '') continue
-
-      const key: string = setting.key
-      const globalValue = setting.current
-      if (globalValue === localValue) continue
-
-      code += `${key}: ${localValue}\n`
-    }
+    let codeBlockContent = this.createCodeBlockContent();
 
     if (this.textElement) {
-      this.textElement.value = `\`\`\`${this.data.codeBlockId}\n${code}\`\`\``
+      this.textElement.value = codeBlockContent
     }
 
-    // 2. Trigger the live preview renderer if it was passed in
+    this.adjustHeight()
+
+    /* Trigger the live preview renderer if it was passed in */
     if (this.data.onUpdatePreview && this.previewContainerEl) {
-      this.data.onUpdatePreview(code, this.previewContainerEl)
+      this.data.onUpdatePreview(this.previewContainerEl)
     }
+  }
+
+  private async copyToClipboard() {
+    let codeBlockContent = this.createCodeBlockContent();
+    try {
+      await window.navigator.clipboard.writeText(codeBlockContent)
+      new Notice('Copied code block to clipboard.')
+    } catch (err) {
+      new Notice('Copy to clipboard failed.')
+    }
+  }
+
+  private createCodeBlockContent() {
+    return this.data.createCodeBlock()
   }
 }
