@@ -7,9 +7,10 @@ function toRecord(strings: readonly string[]): Record<string, string> {
 }
 
 type BaseInput = {
-  name: string // shown to user
+  type: string
+  prompt: string // shown to user
   key: string // key in output Record
-  prompt?: string // shown to user, otherwise 'Overwrite {name}?' will be shown
+  // prompt?: string // shown to user, otherwise 'Overwrite {name}?' will be shown
   tooltip?: string // shown to user as tooltip
   current?: boolean | number | string
 }
@@ -70,18 +71,14 @@ abstract class Selector {
   }
 
   addName() {
-    const {prompt} = this.anyData
-    if (this.anyData.type === 'expandable') {
-      this.setting.setName(prompt ?? ' missing prompt!')
-    } else if (this.isOptional) {
-      const currVal = ('current' in this.anyData) ? this.anyData.current : 'none'
-      const prefix = prompt ?? `Overwrite ${this.anyData.name}?`
-      const displayVal = currVal === '' ? 'none' : currVal
+    let prompt: string = this.anyData.prompt
 
-      this.setting.setName(`${prefix} Preset value is: ${displayVal}`)
-    } else {
-      this.setting.setName(prompt ? prompt : `Please input ${this.anyData.name}.`)
+    if (this.isOptional && 'current' in this.anyData) {
+      const currVal = this.anyData.current === undefined ? this.anyData.current : 'none'
+      prompt += ` Preset value is: ${currVal}`
     }
+
+    this.setting.setName(prompt)
   }
 
   addToggle() {
@@ -98,6 +95,7 @@ abstract class Selector {
 
   addExplanationAsTooltip() {
     const tooltip = this.anyData.tooltip ?? 'No tooltip'
+    if (this.anyData.tooltip)
     this.setting.addExtraButton(eb => eb.setIcon('lucide-circle-question-mark').setTooltip(tooltip, {delay: -1}))
   }
 }
@@ -160,9 +158,9 @@ class DropdownSelector extends Selector {
     setting.addDropdown((button) => button
       .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
       .onChange((value: string) => this.write(value))
-      .setDisabled(!this.toggleActive))
+    // .setDisabled(!this.toggleActive))
 
-    this.addToggle()
+    // this.addToggle()
     this.addExplanationAsTooltip()
   }
 }
@@ -238,16 +236,6 @@ class ExpandableSelector extends Selector {
         this.hideOrShow()
       })
     })
-
-    // ( => {
-    //   this.hideOrShow(active)
-    //   this.toggleActive = active
-    // }))
-
-    // setting.addToggle(tc => tc.setValue(false).onChange(active => {
-    //   this.hideOrShow(active)
-    //   this.toggleActive = active
-    // }))
 
     for (const input of data.nestedInput) {
 
