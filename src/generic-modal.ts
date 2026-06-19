@@ -49,7 +49,7 @@ abstract class Selector {
 
   protected constructor(
     readonly setting: Setting,
-    private readonly anyData: AnyInput,
+    private readonly anyData: MandatoryInput,
     public output: Record<string, OutputData>,
     public readonly callback: GenericModal,
     public readonly isOptional: boolean) {
