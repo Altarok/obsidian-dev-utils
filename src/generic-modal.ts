@@ -22,8 +22,7 @@ type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; 
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 
 type ExpandableInput = Input & {
-  type: 'expandable'; key: never; current: never;
-  nestedInput: readonly OptionalInput[]
+  type: 'expandable'; nestedInput: readonly OptionalInput[]
 }
 
 export type MandatoryInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput>
