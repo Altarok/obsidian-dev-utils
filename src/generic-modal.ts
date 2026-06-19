@@ -6,9 +6,9 @@ function toRecord(strings: readonly string[]): Record<string, string> {
   return Object.fromEntries(strings.map(str => [str, str]))
 }
 
-type BaseInput = {
-  type: string
-  prompt: string // shown to user
+type Input = { type: string; prompt: string /* shown to user */ }
+
+type BaseInput = Input & {
   key: string // key in output Record
   tooltip?: string // shown to user as tooltip
   current?: boolean | number | string
@@ -21,7 +21,7 @@ type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; dropdownOptions:
 type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 
-type ExpandableInput = BaseInput & {
+type ExpandableInput = Input & {
   type: 'expandable'; key: never; current: never;
   nestedInput: readonly OptionalInput[]
 }
