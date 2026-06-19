@@ -1,4 +1,4 @@
-import {Notice, Setting} from 'obsidian'
+import {DropdownComponent, Notice, Setting} from 'obsidian'
 
 export type OutputData = string | boolean | number | undefined
 
@@ -10,7 +10,6 @@ type BaseInput = {
   type: string
   prompt: string // shown to user
   key: string // key in output Record
-  // prompt?: string // shown to user, otherwise 'Overwrite {name}?' will be shown
   tooltip?: string // shown to user as tooltip
   current?: boolean | number | string
 }
@@ -19,10 +18,13 @@ type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
 type ColorInput = BaseInput & { type: 'color'; current: string }
 type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
 type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; dropdownOptions: readonly string[] }
-type ExpandableInput = BaseInput & { type: 'expandable'; prompt: string; nestedInput: readonly OptionalInput[] }
 type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 
+type ExpandableInput = BaseInput & {
+  type: 'expandable'; key: never; current: never;
+  nestedInput: readonly OptionalInput[]
+}
 
 export type MandatoryInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput>
 
@@ -96,7 +98,7 @@ abstract class Selector {
   addExplanationAsTooltip() {
     const tooltip = this.anyData.tooltip ?? 'No tooltip'
     if (this.anyData.tooltip)
-    this.setting.addExtraButton(eb => eb.setIcon('lucide-circle-question-mark').setTooltip(tooltip, {delay: -1}))
+      this.setting.addExtraButton(eb => eb.setIcon('lucide-circle-question-mark').setTooltip(tooltip, {delay: -1}))
   }
 }
 
@@ -146,6 +148,7 @@ class ColorSelector extends Selector {
 }
 
 class DropdownSelector extends Selector {
+  private dropdownComponent?: DropdownComponent
 
   constructor(setting: Setting, public data: DropdownInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
@@ -155,11 +158,15 @@ class DropdownSelector extends Selector {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addDropdown((button) => button
-      .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-      .onChange((value: string) => this.write(value))
-    // .setDisabled(!this.toggleActive)
-    )
+    setting.addDropdown(dd => {
+      this.dropdownComponent = dd
+      dd.addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
+        .onChange((value: string) => this.write(value))
+    })
+      .addExtraButton(eb => eb.setIcon('lucide-reset')
+        .onClick(() => {
+          this.dropdownComponent?.setValue(data.current)
+        }))
 
     // this.addToggle()
     this.addExplanationAsTooltip()
@@ -197,13 +204,15 @@ class DropdownMultiSelector extends Selector {
   }
 }
 
-class ExpandableSelector extends Selector {
-  hiddenSettings: Setting[] = []
+class ExpandableSelector /* extends Selector */ {
+  private toggleActive: boolean = false
+  private hiddenSettings: Setting[] = []
   private hasBuilt: boolean = false
-  private button: any
 
-  constructor(setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, output: Record<string, OutputData>, callback: GenericModal) {
-    super(setting, data, output, callback, true)
+  // private button: any
+
+  constructor(public setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, public output: Record<string, OutputData>, public callback: GenericModal) {
+    // super(setting, data, output, callback, true)
   }
 
   hideOrShow() {
@@ -226,10 +235,10 @@ class ExpandableSelector extends Selector {
     this.hiddenSettings = []
 
     setting.clear()
-    super.addName()
+    setting.setName(data.prompt)
 
     setting.addExtraButton(bc => {
-      this.button = bc
+      // this.button = bc
       bc.setIcon('lucide-chevron-down')
       bc.onClick(() => {
         this.toggleActive = !this.toggleActive
@@ -360,7 +369,6 @@ export class GenericModal {
   display() {
     const {contentEl, data} = this
 
-    // const header = data.title ??
     const headingText = data.title ?? (data.pluginName ? `[${data.pluginName}] Code block creator` : 'Code block creator')
     new Setting(contentEl).setName(headingText).setHeading()
 
