@@ -60,7 +60,22 @@ export interface StringInput extends BaseInput {
   validationPattern?: RegExp // optional validation pattern
 }
 
+export interface StringInput extends BaseInput {
+  type: 'string'
+  current: string
+  validationPattern?: RegExp // optional validation pattern
+}
+
 export type AnyInput = BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput;
+
+export interface ExpandableInput extends BaseInput {
+  type: 'expandable'
+  current: never
+  prompt: string
+  explanation: never
+  validationPattern: never
+  nestedInput: AnyInput[]
+}
 
 export interface GenericModalInput {
   readonly title?: string

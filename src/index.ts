@@ -1,4 +1,4 @@
-export {GenericModal} from './generic-modal';
+export {GenericModal} from './generic-modal'
 
 // Export data structure types for full type safety
 export type {
@@ -11,5 +11,6 @@ export type {
   DropdownMultiInput,
   SliderInput,
   StringInput,
+  ExpandableInput,
   GenericModalInput
-} from './generic-modal';
+} from './generic-modal'
