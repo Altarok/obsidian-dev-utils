@@ -11,6 +11,7 @@ function toRecord(strings: readonly string[]): Record<string, string> {
 export interface BaseInput {
   readonly type: string
   readonly name: string
+  readonly prompt?: string
   readonly key: string // key in local settings
   readonly explanation?: string // optional long description for first time users
   readonly current?: string | boolean | number // current value
@@ -100,10 +101,11 @@ abstract class Selector {
   }
 
   addName() {
+    const {prompt} = this.anyData
     if (this.isOptional)
-      this.setting.setName(`Overwrite ${this.anyData.name}? Preset value is: ${this.anyData.current === '' ? 'none' : this.anyData.current}`)
+      this.setting.setName(`${prompt ? prompt : `Overwrite ${this.anyData.name}?`} Preset value is: ${this.anyData.current === '' ? 'none' : this.anyData.current}`)
     else
-      this.setting.setName(`Please input ${this.anyData.name}.`)
+      this.setting.setName(prompt ? prompt : `Please input ${this.anyData.name}.`)
   }
 
   addToggle() {
