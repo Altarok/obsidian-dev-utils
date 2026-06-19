@@ -72,7 +72,7 @@ abstract class Selector {
   addName() {
     const {prompt} = this.anyData
     if (this.anyData.type === 'expandable') {
-      this.setting.setName(prompt??' missing prompt!')
+      this.setting.setName(prompt ?? ' missing prompt!')
     } else if (this.isOptional) {
       const currVal = ('current' in this.anyData) ? this.anyData.current : 'none'
       const prefix = prompt ?? `Overwrite ${this.anyData.name}?`
@@ -87,11 +87,11 @@ abstract class Selector {
   addToggle() {
     if (!this.isOptional) return
     this.setting.addToggle(tc => tc.setValue(this.toggleActive)
-    .onChange((active: boolean) => {
-      this.toggleActive = active
-      if (!active) this.revert()
-      this.draw()
-    }))
+      .onChange((active: boolean) => {
+        this.toggleActive = active
+        if (!active) this.revert()
+        this.draw()
+      }))
   }
 
   abstract draw(): void
@@ -122,10 +122,10 @@ class BooleanSelector extends Selector {
     super.addName()
 
     setting.addToggle(tc => tc.setValue(initialValue)
-    .onChange((active: boolean) => {
-      if (active === initialValue) this.revert()
-      else this.write(active)
-    }))
+      .onChange((active: boolean) => {
+        if (active === initialValue) this.revert()
+        else this.write(active)
+      }))
 
     this.addExplanationAsTooltip()
   }
@@ -141,7 +141,7 @@ class ColorSelector extends Selector {
     setting.clear()
     super.addName()
     setting.addColorPicker(color => color.setValue(data.current)
-    .onChange((value: string) => this.write(value)))
+      .onChange((value: string) => this.write(value)))
     this.addToggle()
     this.addExplanationAsTooltip()
   }
@@ -158,9 +158,9 @@ class DropdownSelector extends Selector {
     setting.clear()
     super.addName()
     setting.addDropdown((button) => button
-    .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-    .onChange((value: string) => this.write(value))
-    .setDisabled(!this.toggleActive))
+      .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
+      .onChange((value: string) => this.write(value))
+      .setDisabled(!this.toggleActive))
 
     this.addToggle()
     this.addExplanationAsTooltip()
@@ -182,16 +182,16 @@ class DropdownMultiSelector extends Selector {
     super.addName()
 
     setting
-    .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
-    .addDropdown(button =>
-      button
-      .addOptions(toRecord(data.dropdownOptions))
-      .onChange((value: string) => {
-        if (!this.selections.includes(value)) this.selections.push(value)
-        this.concatenatedSelections = this.selections.join(this.separator)
-        this.write(value)
-      })
-      .setDisabled(!this.toggleActive))
+      .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
+      .addDropdown(button =>
+        button
+          .addOptions(toRecord(data.dropdownOptions))
+          .onChange((value: string) => {
+            if (!this.selections.includes(value)) this.selections.push(value)
+            this.concatenatedSelections = this.selections.join(this.separator)
+            this.write(value)
+          })
+          .setDisabled(!this.toggleActive))
 
     this.addToggle()
     this.addExplanationAsTooltip()
@@ -201,19 +201,20 @@ class DropdownMultiSelector extends Selector {
 class ExpandableSelector extends Selector {
   hiddenSettings: Setting[] = []
   private hasBuilt: boolean = false
+  private button: any
 
   constructor(setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, output: Record<string, OutputData>, callback: GenericModal) {
     super(setting, data, output, callback, true)
   }
 
-  hideOrShow(show: boolean) {
+  hideOrShow() {
     for (const s of this.hiddenSettings)
-      s.settingEl.style.display = show ? '' /* unhide */ : 'none' /* hide */
+      s.settingEl.style.display = this.toggleActive ? '' /* unhide */ : 'none' /* hide */
   }
 
   draw() {
     if (this.hasBuilt) {
-      this.hideOrShow(this.toggleActive)
+      this.hideOrShow()
       return
     }
 
@@ -228,10 +229,25 @@ class ExpandableSelector extends Selector {
     setting.clear()
     super.addName()
 
-    setting.addToggle(tc => tc.setValue(false).onChange(active => {
-      this.hideOrShow(active)
-      this.toggleActive = active
-    }))
+    setting.addExtraButton(bc => {
+      this.button = bc
+      bc.setIcon('lucide-chevron-down')
+      bc.onClick(() => {
+        this.toggleActive = !this.toggleActive
+        bc.setIcon(this.toggleActive ? 'lucide-chevron-up' : 'lucide-chevron-down')
+        this.hideOrShow()
+      })
+    })
+
+    // ( => {
+    //   this.hideOrShow(active)
+    //   this.toggleActive = active
+    // }))
+
+    // setting.addToggle(tc => tc.setValue(false).onChange(active => {
+    //   this.hideOrShow(active)
+    //   this.toggleActive = active
+    // }))
 
     for (const input of data.nestedInput) {
 
@@ -263,8 +279,8 @@ class ExpandableSelector extends Selector {
       }
     }
 
-    this.hideOrShow(false)
-    this.addExplanationAsTooltip()
+    this.hideOrShow()
+    // this.addExplanationAsTooltip()
     this.hasBuilt = true
   }
 
@@ -281,10 +297,10 @@ class SliderSelector extends Selector {
     super.addName()
 
     setting.addSlider(sc => sc
-    .setValue(data.current)
-    .setLimits(data.from, data.to, data.step)
-    .onChange((value: number) => this.write(value))
-    .setDisabled(this.isOptional && !this.toggleActive))
+      .setValue(data.current)
+      .setLimits(data.from, data.to, data.step)
+      .onChange((value: number) => this.write(value))
+      .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
     super.addExplanationAsTooltip()
@@ -302,9 +318,9 @@ class StringSelector extends Selector {
     super.addName()
 
     setting.addText(tc => tc
-    .setValue(data.current)
-    .onChange((value: string) => this.write(value))
-    .setDisabled(this.isOptional && !this.toggleActive))
+      .setValue(data.current)
+      .onChange((value: string) => this.write(value))
+      .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
     super.addExplanationAsTooltip()
@@ -383,17 +399,17 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlockContent()
 
     const setting = new Setting(this.contentEl)
-    .setName('Output')
-    .addTextArea(cb => {
+      .setName('Output')
+      .addTextArea(cb => {
 
-      cb.setValue(codeBlockContent).setDisabled(true)
+        cb.setValue(codeBlockContent).setDisabled(true)
 
-      this.textElement = cb.inputEl
+        this.textElement = cb.inputEl
 
-      cb.inputEl.style.width = '100%'
-      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-    })
+        cb.inputEl.style.width = '100%'
+        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+      })
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
