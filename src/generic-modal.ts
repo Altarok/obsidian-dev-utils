@@ -71,7 +71,9 @@ abstract class Selector {
 
   addName() {
     const {prompt} = this.anyData
-    if (this.isOptional) {
+    if (this.anyData.type === 'expandable') {
+      this.setting.setName(prompt??' missing prompt!')
+    } else if (this.isOptional) {
       const currVal = ('current' in this.anyData) ? this.anyData.current : 'none'
       const prefix = prompt ?? `Overwrite ${this.anyData.name}?`
       const displayVal = currVal === '' ? 'none' : currVal
