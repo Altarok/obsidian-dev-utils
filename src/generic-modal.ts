@@ -83,7 +83,7 @@ abstract class Selector {
   }
 
   addToggle() {
-    if (!this.isOptional) return;
+    if (!this.isOptional) return
     this.setting.addToggle(tc => tc.setValue(this.toggleActive)
     .onChange((active: boolean) => {
       this.toggleActive = active
@@ -108,8 +108,7 @@ class BooleanSelector extends Selector {
     readonly data: BooleanInput,
     output: Record<string, OutputData>,
     callback: GenericModal,
-    readonly isOptional: boolean,
-    readonly isVisibleCallback?: () => boolean
+    readonly isOptional: boolean
   ) {
     super(setting, data, output, callback, isOptional)
     this.initialValue = data.current
@@ -127,18 +126,6 @@ class BooleanSelector extends Selector {
     }))
 
     this.addExplanationAsTooltip()
-
-    debugger
-
-    if (this.isVisibleCallback){
-      let visible: boolean = this.isVisibleCallback()
-      if (visible) {
-        setting.settingEl.style.display = ''; // Restores default (usually flex)
-      } else {
-        setting.settingEl.style.display = 'none'; // Hides it completely
-      }
-    }
-
   }
 }
 
@@ -210,58 +197,75 @@ class DropdownMultiSelector extends Selector {
 }
 
 class ExpandableSelector extends Selector {
-  isActive: boolean = false
+  hiddenSettings: Setting[] = []
+  private hasBuilt: boolean = false
 
   constructor(setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, output: Record<string, OutputData>, callback: GenericModal) {
     super(setting, data, output, callback, true)
   }
 
+  hideOrShow(show: boolean) {
+    for (const s of this.hiddenSettings)
+      s.settingEl.style.display = show ? '' /* unhide */ : 'none' /* hide */
+  }
+
   draw() {
+    if (this.hasBuilt) {
+      this.hideOrShow(this.toggleActive)
+      return
+    }
+
     const {setting, data, output, contentEl, callback} = this
+
+    for (const oldSetting of this.hiddenSettings) {
+      oldSetting.settingEl.remove()
+    }
+
+    this.hiddenSettings = []
 
     setting.clear()
     super.addName()
 
-    setting.addToggle(tc => tc.setValue(this.isActive).onChange(active => this.isActive = active))
+    setting.addToggle(tc => tc.setValue(false).onChange(active => {
+      this.hideOrShow(active)
+      this.toggleActive = active
+    }))
 
-    const isVisibleCallback = (): boolean => {
-      return this.isActive
+    for (const input of data.nestedInput) {
+
+      const subSetting = new Setting(contentEl)
+      this.hiddenSettings.push(subSetting)
+
+      switch (input.type) {
+        case 'boolean':
+          new BooleanSelector(subSetting, input, output, callback, true).draw()
+          break
+        case 'color':
+          new ColorSelector(subSetting, input, output, callback, true).draw()
+          break
+        case 'dropdown':
+          new DropdownSelector(subSetting, input, output, callback, true).draw()
+          break
+        case 'dropdown-multi':
+          new DropdownMultiSelector(subSetting, input, output, callback, true).draw()
+          break
+        // case 'expandable':
+        //     new ExpandableSelector(new Setting(contentEl), input, output, callback).draw()
+        //   break
+        case 'slider':
+          new SliderSelector(subSetting, input, output, callback, true).draw()
+          break
+        case 'string':
+          new StringSelector(subSetting, input, output, callback, true).draw()
+          break
+      }
     }
 
-    /*
-     * draw children
-     */
-    // const {contentEl, data} = this
-    // const output = data.output;
-
-    for (const input of data.nestedInput) switch (input.type) {
-      case 'boolean':
-        new BooleanSelector(new Setting(contentEl), input, output, callback, true, isVisibleCallback).draw()
-        break;
-      case 'color':
-        new ColorSelector(new Setting(contentEl), input, output, callback, true).draw()
-        break;
-      case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), input, output, callback, true).draw()
-        break;
-      case 'dropdown-multi':
-        new DropdownMultiSelector(new Setting(contentEl), input, output, callback, true).draw()
-        break;
-      // case 'expandable':
-      //     new ExpandableSelector(new Setting(contentEl), input, output, callback).draw()
-      //   break;
-      case 'slider':
-        new SliderSelector(new Setting(contentEl), input, output, callback, true).draw()
-        break;
-      case 'string':
-        new StringSelector(new Setting(contentEl), input, output, callback, true).draw()
-        break;
-    }
-
-
-    // this.addToggle()
+    this.hideOrShow(false)
     this.addExplanationAsTooltip()
+    this.hasBuilt = true
   }
+
 }
 
 class SliderSelector extends Selector {
@@ -307,42 +311,42 @@ class StringSelector extends Selector {
 
 export class GenericModal {
   private textElement!: HTMLTextAreaElement
-  private previewContainerEl!: HTMLDivElement;
-  private adjustHeight!: () => void;
+  private previewContainerEl!: HTMLDivElement
+  private adjustHeight!: () => void
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
 
   createSelectors(inputs: readonly AnyInput[], isOptional: boolean) {
     const {contentEl, data} = this
-    const output = data.output;
+    const output = data.output
 
     for (const input of inputs) switch (input.type) {
       case 'boolean':
         new BooleanSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
       case 'color':
         new ColorSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
       case 'dropdown':
         new DropdownSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
       case 'dropdown-multi':
         new DropdownMultiSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
       case 'expandable':
         if (isOptional) {
           new ExpandableSelector(new Setting(contentEl), contentEl, input, output, this).draw()
         } else {
           console.warn('Mandatory input can not be expandable')
         }
-        break;
+        break
       case 'slider':
         new SliderSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
       case 'string':
         new StringSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break;
+        break
     }
   }
 
@@ -363,13 +367,13 @@ export class GenericModal {
     this.createTextArea()
 
     /* create live SVG */
-    this.previewContainerEl = contentEl.createDiv();
-    this.previewContainerEl.style.width = '100%';
-    this.previewContainerEl.style.display = 'flex';
-    this.previewContainerEl.style.justifyContent = 'center';
-    this.previewContainerEl.style.marginBottom = '1.5rem';
+    this.previewContainerEl = contentEl.createDiv()
+    this.previewContainerEl.style.width = '100%'
+    this.previewContainerEl.style.display = 'flex'
+    this.previewContainerEl.style.justifyContent = 'center'
+    this.previewContainerEl.style.marginBottom = '1.5rem'
 
-    this.updateTextArea();
+    this.updateTextArea()
   }
 
   private createTextArea() {
@@ -392,9 +396,9 @@ export class GenericModal {
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
       this.textElement.style.height = `${this.textElement.scrollHeight}px`
-    };
+    }
 
-    // this.textElement.addEventListener('input', this.adjustHeight);
+    // this.textElement.addEventListener('input', this.adjustHeight)
 
     this.adjustHeight()
 
@@ -417,7 +421,7 @@ export class GenericModal {
   }
 
   updateTextArea() {
-    let codeBlockContent = this.createCodeBlockContent();
+    let codeBlockContent = this.createCodeBlockContent()
 
     if (this.textElement) {
       this.textElement.value = codeBlockContent
@@ -432,7 +436,7 @@ export class GenericModal {
   }
 
   private async copyToClipboard() {
-    let codeBlockContent = this.createCodeBlockContent();
+    let codeBlockContent = this.createCodeBlockContent()
     try {
       await window.navigator.clipboard.writeText(codeBlockContent)
       new Notice('Copied code block to clipboard.')
