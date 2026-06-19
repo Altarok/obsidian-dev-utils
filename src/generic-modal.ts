@@ -3,88 +3,42 @@ import {Notice, Setting} from 'obsidian'
 export type OutputData = string | boolean | number | undefined
 
 function toRecord(strings: readonly string[]): Record<string, string> {
-  let record: Record<string, string> = {}
-  for (const str of strings) record[str] = str
-  return record
+  return Object.fromEntries(strings.map(str => [str, str]))
 }
 
-export interface BaseInput {
-  readonly type: string
-  readonly name: string
-  readonly prompt?: string
-  readonly key: string // key in local settings
-  readonly explanation?: string // optional long description for first time users
-  readonly current?: string | boolean | number // current value
-  readonly validationPattern?: RegExp
+type BaseInput = {
+  name: string // shown to user
+  key: string // key in output Record
+  prompt?: string // shown to user, otherwise 'Overwrite {name}?' will be shown
+  tooltip?: string // shown to user as tooltip
+  current?: boolean | number | string
 }
 
-export interface BooleanInput extends BaseInput {
-  type: 'boolean'
-  current: boolean
-  validationPattern?: never
-}
+type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
+type ColorInput = BaseInput & { type: 'color'; current: string }
+type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
+type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; dropdownOptions: readonly string[] }
+type ExpandableInput = BaseInput & { type: 'expandable'; prompt: string; nestedInput: readonly OptionalInput[] }
+type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
+type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 
-export interface ColorInput extends BaseInput {
-  type: 'color'
-  current: string
-  validationPattern?: never
-}
 
-export interface DropdownInput extends BaseInput {
-  type: 'dropdown'
-  current: string
-  validationPattern?: never
-  readonly dropdownOptions: readonly string[]
-}
+export type MandatoryInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput>
 
-export interface DropdownMultiInput extends BaseInput {
-  type: 'dropdown-multi'
-  current?: never
-  validationPattern?: never
-  readonly separator?: string // like ','
-  readonly dropdownOptions: readonly string[]
-}
+export type OptionalInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | ExpandableInput
+  | SliderInput | StringInput>
 
-export interface SliderInput extends BaseInput {
-  type: 'slider'
-  current: number
-  from: number
-  to: number
-  step: number
-  validationPattern?: never
-}
+export type AnyInput = MandatoryInput | OptionalInput
 
-export interface StringInput extends BaseInput {
-  type: 'string'
-  current: string
-  validationPattern?: RegExp // optional validation pattern
-}
-
-export interface StringInput extends BaseInput {
-  type: 'string'
-  current: string
-  validationPattern?: RegExp // optional validation pattern
-}
-
-export type AnyInput = BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput;
-
-export interface ExpandableInput extends BaseInput {
-  type: 'expandable'
-  current: never
-  prompt: string
-  explanation: never
-  validationPattern: never
-  nestedInput: AnyInput[]
-}
-
-export interface GenericModalInput {
+export type GenericModalInput = {
   readonly title?: string
   readonly pluginName?: string
-  readonly mandatory: Readonly<AnyInput>[]
-  readonly optional: Readonly<AnyInput>[]
-  output: Record<string, OutputData>
+  readonly mandatory: readonly MandatoryInput[]
+  readonly optional: readonly OptionalInput[]
   readonly createCodeBlock: () => string
   readonly onUpdatePreview?: (previewEl: HTMLDivElement) => void
+
+  output: Record<string, OutputData>
 }
 
 abstract class Selector {
@@ -99,8 +53,8 @@ abstract class Selector {
   }
 
   private validate(value: string): boolean {
-    if (!this.anyData.validationPattern) return true
-    return this.anyData.validationPattern.test(value)
+    if (this.anyData.type !== 'string' || !this.anyData.validationPattern) return true
+    return this.anyData.validationPattern?.test(value) ?? true
   }
 
   write(value: OutputData) {
@@ -117,18 +71,23 @@ abstract class Selector {
 
   addName() {
     const {prompt} = this.anyData
-    if (this.isOptional)
-      this.setting.setName(`${prompt ? prompt : `Overwrite ${this.anyData.name}?`} Preset value is: ${this.anyData.current === '' ? 'none' : this.anyData.current}`)
-    else
+    if (this.isOptional) {
+      const currVal = ('current' in this.anyData) ? this.anyData.current : 'none'
+      const prefix = prompt ?? `Overwrite ${this.anyData.name}?`
+      const displayVal = currVal === '' ? 'none' : currVal
+
+      this.setting.setName(`${prefix} Preset value is: ${displayVal}`)
+    } else {
       this.setting.setName(prompt ? prompt : `Please input ${this.anyData.name}.`)
+    }
   }
 
   addToggle() {
     if (!this.isOptional) return;
     this.setting.addToggle(tc => tc.setValue(this.toggleActive)
-    .onChange(async (active: boolean) => {
-      if (!active) this.revert()
+    .onChange((active: boolean) => {
       this.toggleActive = active
+      if (!active) this.revert()
       this.draw()
     }))
   }
@@ -136,7 +95,7 @@ abstract class Selector {
   abstract draw(): void
 
   addExplanationAsTooltip() {
-    const tooltip = this.anyData.explanation ?? 'No explanation'
+    const tooltip = this.anyData.tooltip ?? 'No tooltip'
     this.setting.addExtraButton(eb => eb.setIcon('lucide-circle-question-mark').setTooltip(tooltip, {delay: -1}))
   }
 }
@@ -144,7 +103,14 @@ abstract class Selector {
 class BooleanSelector extends Selector {
   private readonly initialValue: boolean
 
-  constructor(setting: Setting, readonly data: BooleanInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
+  constructor(
+    setting: Setting,
+    readonly data: BooleanInput,
+    output: Record<string, OutputData>,
+    callback: GenericModal,
+    readonly isOptional: boolean,
+    readonly isVisibleCallback?: () => boolean
+  ) {
     super(setting, data, output, callback, isOptional)
     this.initialValue = data.current
   }
@@ -155,12 +121,24 @@ class BooleanSelector extends Selector {
     super.addName()
 
     setting.addToggle(tc => tc.setValue(initialValue)
-    .onChange(async (active: boolean) => {
+    .onChange((active: boolean) => {
       if (active === initialValue) this.revert()
       else this.write(active)
     }))
 
     this.addExplanationAsTooltip()
+
+    debugger
+
+    if (this.isVisibleCallback){
+      let visible: boolean = this.isVisibleCallback()
+      if (visible) {
+        setting.settingEl.style.display = ''; // Restores default (usually flex)
+      } else {
+        setting.settingEl.style.display = 'none'; // Hides it completely
+      }
+    }
+
   }
 }
 
@@ -174,7 +152,7 @@ class ColorSelector extends Selector {
     setting.clear()
     super.addName()
     setting.addColorPicker(color => color.setValue(data.current)
-    .onChange(async (value: string) => this.write(value)))
+    .onChange((value: string) => this.write(value)))
     this.addToggle()
     this.addExplanationAsTooltip()
   }
@@ -192,7 +170,7 @@ class DropdownSelector extends Selector {
     super.addName()
     setting.addDropdown((button) => button
     .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-    .onChange(async (value: string) => this.write(value))
+    .onChange((value: string) => this.write(value))
     .setDisabled(!this.toggleActive))
 
     this.addToggle()
@@ -203,11 +181,10 @@ class DropdownSelector extends Selector {
 class DropdownMultiSelector extends Selector {
   selections: string[] = []
   concatenatedSelections: string = ''
-  separator: string
+  separator: string = ',' // add data.separator?
 
   constructor(setting: Setting, public data: DropdownMultiInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
-    this.separator = data.separator ?? ','
   }
 
   draw() {
@@ -220,14 +197,69 @@ class DropdownMultiSelector extends Selector {
     .addDropdown(button =>
       button
       .addOptions(toRecord(data.dropdownOptions))
-      .onChange(async (value: string) => {
-        if (!this.selections.contains(value)) this.selections.push(value)
+      .onChange((value: string) => {
+        if (!this.selections.includes(value)) this.selections.push(value)
         this.concatenatedSelections = this.selections.join(this.separator)
         this.write(value)
       })
       .setDisabled(!this.toggleActive))
 
     this.addToggle()
+    this.addExplanationAsTooltip()
+  }
+}
+
+class ExpandableSelector extends Selector {
+  isActive: boolean = false
+
+  constructor(setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, output: Record<string, OutputData>, callback: GenericModal) {
+    super(setting, data, output, callback, true)
+  }
+
+  draw() {
+    const {setting, data, output, contentEl, callback} = this
+
+    setting.clear()
+    super.addName()
+
+    setting.addToggle(tc => tc.setValue(this.isActive).onChange(active => this.isActive = active))
+
+    const isVisibleCallback = (): boolean => {
+      return this.isActive
+    }
+
+    /*
+     * draw children
+     */
+    // const {contentEl, data} = this
+    // const output = data.output;
+
+    for (const input of data.nestedInput) switch (input.type) {
+      case 'boolean':
+        new BooleanSelector(new Setting(contentEl), input, output, callback, true, isVisibleCallback).draw()
+        break;
+      case 'color':
+        new ColorSelector(new Setting(contentEl), input, output, callback, true).draw()
+        break;
+      case 'dropdown':
+        new DropdownSelector(new Setting(contentEl), input, output, callback, true).draw()
+        break;
+      case 'dropdown-multi':
+        new DropdownMultiSelector(new Setting(contentEl), input, output, callback, true).draw()
+        break;
+      // case 'expandable':
+      //     new ExpandableSelector(new Setting(contentEl), input, output, callback).draw()
+      //   break;
+      case 'slider':
+        new SliderSelector(new Setting(contentEl), input, output, callback, true).draw()
+        break;
+      case 'string':
+        new StringSelector(new Setting(contentEl), input, output, callback, true).draw()
+        break;
+    }
+
+
+    // this.addToggle()
     this.addExplanationAsTooltip()
   }
 }
@@ -245,7 +277,7 @@ class SliderSelector extends Selector {
     setting.addSlider(sc => sc
     .setValue(data.current)
     .setLimits(data.from, data.to, data.step)
-    .onChange(async (value: number) => this.write(value))
+    .onChange((value: number) => this.write(value))
     .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
@@ -265,7 +297,7 @@ class StringSelector extends Selector {
 
     setting.addText(tc => tc
     .setValue(data.current)
-    .onChange(async (value: string) => this.write(value))
+    .onChange((value: string) => this.write(value))
     .setDisabled(this.isOptional && !this.toggleActive))
 
     super.addToggle()
@@ -281,28 +313,35 @@ export class GenericModal {
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
 
-  createSelectors(inputs: Readonly<AnyInput>[], isOptional: boolean) {
+  createSelectors(inputs: readonly AnyInput[], isOptional: boolean) {
     const {contentEl, data} = this
     const output = data.output;
 
     for (const input of inputs) switch (input.type) {
       case 'boolean':
-        new BooleanSelector(new Setting(contentEl), input as BooleanInput, output, this, isOptional).draw()
+        new BooleanSelector(new Setting(contentEl), input, output, this, isOptional).draw()
         break;
       case 'color':
-        new ColorSelector(new Setting(contentEl), input as ColorInput, output, this, isOptional).draw()
+        new ColorSelector(new Setting(contentEl), input, output, this, isOptional).draw()
         break;
       case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), input as DropdownInput, output, this, isOptional).draw()
+        new DropdownSelector(new Setting(contentEl), input, output, this, isOptional).draw()
         break;
       case 'dropdown-multi':
-        new DropdownMultiSelector(new Setting(contentEl), input as DropdownMultiInput, output, this, isOptional).draw()
+        new DropdownMultiSelector(new Setting(contentEl), input, output, this, isOptional).draw()
+        break;
+      case 'expandable':
+        if (isOptional) {
+          new ExpandableSelector(new Setting(contentEl), contentEl, input, output, this).draw()
+        } else {
+          console.warn('Mandatory input can not be expandable')
+        }
         break;
       case 'slider':
-        new SliderSelector(new Setting(contentEl), input as SliderInput, output, this, isOptional).draw()
+        new SliderSelector(new Setting(contentEl), input, output, this, isOptional).draw()
         break;
       case 'string':
-        new StringSelector(new Setting(contentEl), input as StringInput, output, this, isOptional).draw()
+        new StringSelector(new Setting(contentEl), input, output, this, isOptional).draw()
         break;
     }
   }
@@ -310,7 +349,9 @@ export class GenericModal {
   display() {
     const {contentEl, data} = this
 
-    new Setting(contentEl).setName(data.title ?? data.pluginName ? data.pluginName + ' ' + 'Code block creator' : 'Code block creator').setHeading()
+    // const header = data.title ??
+    const headingText = data.title ?? (data.pluginName ? `[${data.pluginName}] Code block creator` : 'Code block creator')
+    new Setting(contentEl).setName(headingText).setHeading()
 
     this.createSelectors(data.mandatory, false)
 
