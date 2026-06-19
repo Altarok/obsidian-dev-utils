@@ -158,7 +158,8 @@ class DropdownSelector extends Selector {
     setting.addDropdown((button) => button
       .addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
       .onChange((value: string) => this.write(value))
-    // .setDisabled(!this.toggleActive))
+    // .setDisabled(!this.toggleActive)
+    )
 
     // this.addToggle()
     this.addExplanationAsTooltip()
