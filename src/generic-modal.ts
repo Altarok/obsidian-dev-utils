@@ -172,9 +172,6 @@ class ColorSelector extends StringValueSelector {
     )
     this.addResetButton()
   }
-  resetValueToCurrent(): void {
-    this.resettableStringComponent?.setValue('none')
-  }
 }
 
 class DropdownSelector extends StringValueSelector {
