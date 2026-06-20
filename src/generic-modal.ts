@@ -1,4 +1,12 @@
-import {DropdownComponent, Notice, Setting} from 'obsidian'
+import {
+  ColorComponent,
+  DropdownComponent,
+  Notice,
+  Setting,
+  SliderComponent,
+  ToggleComponent,
+  ValueComponent
+} from 'obsidian'
 
 export type OutputData = string | boolean | number | undefined
 
@@ -17,7 +25,7 @@ type BaseInput = Input & {
 type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
 type ColorInput = BaseInput & { type: 'color'; current: string }
 type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
-type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; dropdownOptions: readonly string[] }
+type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; current: never; dropdownOptions: readonly string[] }
 type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 
@@ -44,8 +52,6 @@ export type GenericModalInput = {
 }
 
 abstract class Selector {
-  toggleActive: boolean = false
-
   protected constructor(
     readonly setting: Setting,
     private readonly anyData: MandatoryInput,
@@ -67,46 +73,59 @@ abstract class Selector {
   }
 
   revert() {
-    this.output[this.anyData.key] = undefined
+    this.output[this.anyData.key] = undefined // set output value
     this.callback.updateTextArea()
+    this.resetValueToCurrent() // set modal value
   }
 
   addName() {
     let prompt: string = this.anyData.prompt
-
     if (this.isOptional && 'current' in this.anyData) {
-      const currVal = this.anyData.current === undefined ? this.anyData.current : 'none'
+      const currVal = this.anyData.current !== undefined ? this.anyData.current : 'none'
       prompt += ` Preset value is: ${currVal}`
     }
-
     this.setting.setName(prompt)
-  }
-
-  addToggle() {
-    if (!this.isOptional) return
-    this.setting.addToggle(tc => tc.setValue(this.toggleActive)
-      .onChange((active: boolean) => {
-        this.toggleActive = active
-        if (!active) this.revert()
-        this.draw()
-      }))
   }
 
   abstract draw(): void
 
-  addExplanationAsTooltip() {
-    const tooltip = this.anyData.tooltip ?? 'No tooltip'
-    if (this.anyData.tooltip)
-      this.setting.addExtraButton(eb => eb.setIcon('lucide-circle-question-mark').setTooltip(tooltip, {delay: -1}))
+  abstract resetValueToCurrent(): void
+
+  //   // gets overwritten
+  // }
+
+  addResetButton() {
+    let tooltip: string = this.anyData.current ? `Reset to ${this.anyData.current}` : `Reset`
+    this.setting.addExtraButton(eb =>
+      eb.setIcon('lucide-rotate-ccw')
+      .setTooltip(tooltip, {delay: -1})
+      .onClick(() => this.revert()))
+  }
+}
+
+abstract class StringValueSelector extends Selector {
+  resettableStringComponent?: ValueComponent<string>
+
+  protected constructor(setting: Setting,
+                        readonly data: ColorInput | DropdownInput | StringInput,
+                        output: Record<string, OutputData>,
+                        callback: GenericModal,
+                        isOptional: boolean) {
+    super(setting, data, output, callback, isOptional)
+  }
+
+  resetValueToCurrent(): void {
+    this.resettableStringComponent?.setValue(this.data.current)
   }
 }
 
 class BooleanSelector extends Selector {
   private readonly initialValue: boolean
+  private toggle?: ToggleComponent
 
   constructor(
     setting: Setting,
-    readonly data: BooleanInput,
+    data: BooleanInput,
     output: Record<string, OutputData>,
     callback: GenericModal,
     readonly isOptional: boolean
@@ -120,17 +139,24 @@ class BooleanSelector extends Selector {
     setting.clear()
     super.addName()
 
-    setting.addToggle(tc => tc.setValue(initialValue)
+    setting.addToggle(tc =>
+      this.toggle = tc
+      .setValue(initialValue)
       .onChange((active: boolean) => {
         if (active === initialValue) this.revert()
         else this.write(active)
-      }))
+      })
+    )
 
-    this.addExplanationAsTooltip()
+    this.addResetButton()
+  }
+
+  resetValueToCurrent(): void {
+    this.toggle?.setValue(this.initialValue)
   }
 }
 
-class ColorSelector extends Selector {
+class ColorSelector extends StringValueSelector {
   constructor(setting: Setting, readonly data: ColorInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
   }
@@ -139,16 +165,19 @@ class ColorSelector extends Selector {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addColorPicker(color => color.setValue(data.current)
-      .onChange((value: string) => this.write(value)))
-    this.addToggle()
-    this.addExplanationAsTooltip()
+    setting.addColorPicker((color: ColorComponent) =>
+      this.resettableStringComponent = color
+      .setValue(data.current)
+      .onChange(value => this.write(value))
+    )
+    this.addResetButton()
+  }
+  resetValueToCurrent(): void {
+    this.resettableStringComponent?.setValue('none')
   }
 }
 
-class DropdownSelector extends Selector {
-  private dropdownComponent?: DropdownComponent
-
+class DropdownSelector extends StringValueSelector {
   constructor(setting: Setting, public data: DropdownInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
   }
@@ -157,25 +186,20 @@ class DropdownSelector extends Selector {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addDropdown(dd => {
-      this.dropdownComponent = dd
-      dd.addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-        .onChange((value: string) => this.write(value))
-    })
-      .addExtraButton(eb => eb.setIcon('lucide-reset')
-        .onClick(() => {
-          this.dropdownComponent?.setValue(data.current)
-        }))
-
-    // this.addToggle()
-    this.addExplanationAsTooltip()
+    setting.addDropdown(dd =>
+      this.resettableStringComponent = dd
+      .addOptions(toRecord(data.dropdownOptions))
+      .setValue(data.current)
+      .onChange((value: string) => this.write(value))
+    )
+    this.addResetButton()
   }
 }
 
 class DropdownMultiSelector extends Selector {
-  selections: string[] = []
-  concatenatedSelections: string = ''
-  separator: string = ',' // add data.separator?
+  private selections: string[] = []
+  private concatenatedSelections: string = ''
+  private separator: string = ',' // add data.separator?
 
   constructor(setting: Setting, public data: DropdownMultiInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
@@ -187,19 +211,23 @@ class DropdownMultiSelector extends Selector {
     super.addName()
 
     setting
-      .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
-      .addDropdown(button =>
-        button
-          .addOptions(toRecord(data.dropdownOptions))
-          .onChange((value: string) => {
-            if (!this.selections.includes(value)) this.selections.push(value)
-            this.concatenatedSelections = this.selections.join(this.separator)
-            this.write(value)
-          })
-          .setDisabled(!this.toggleActive))
+    .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
+    .addDropdown(button =>
+      button
+      .addOptions(toRecord(data.dropdownOptions))
+      .onChange((value: string) => {
+        if (!this.selections.includes(value)) this.selections.push(value)
+        this.concatenatedSelections = this.selections.join(this.separator)
+        this.write(value)
+      })
+    )
 
-    this.addToggle()
-    this.addExplanationAsTooltip()
+    this.addResetButton()
+  }
+
+  resetValueToCurrent(): void {
+    this.selections = []
+    this.concatenatedSelections = ''
   }
 }
 
@@ -284,6 +312,8 @@ class ExpandableSelector /* extends Selector */ {
 }
 
 class SliderSelector extends Selector {
+  slider?: SliderComponent
+
   constructor(setting: Setting, readonly data: SliderInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
   }
@@ -293,18 +323,22 @@ class SliderSelector extends Selector {
     setting.clear()
     super.addName()
 
-    setting.addSlider(sc => sc
+    setting.addSlider(sc => {
+      this.slider = sc
       .setValue(data.current)
       .setLimits(data.from, data.to, data.step)
       .onChange((value: number) => this.write(value))
-      .setDisabled(this.isOptional && !this.toggleActive))
+    })
 
-    super.addToggle()
-    super.addExplanationAsTooltip()
+    super.addResetButton()
+  }
+
+  resetValueToCurrent(): void {
+    this.slider?.setValue(this.data.current)
   }
 }
 
-class StringSelector extends Selector {
+class StringSelector extends StringValueSelector {
   constructor(setting: Setting, readonly data: StringInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
     super(setting, data, output, callback, isOptional)
   }
@@ -314,13 +348,12 @@ class StringSelector extends Selector {
     setting.clear()
     super.addName()
 
-    setting.addText(tc => tc
-      .setValue(data.current)
+    setting.addText(tc => {
+      this.resettableStringComponent = tc
+      tc.setValue(data.current)
       .onChange((value: string) => this.write(value))
-      .setDisabled(this.isOptional && !this.toggleActive))
-
-    super.addToggle()
-    super.addExplanationAsTooltip()
+    })
+    super.addResetButton()
   }
 }
 
@@ -372,9 +405,6 @@ export class GenericModal {
     new Setting(contentEl).setName(headingText).setHeading()
 
     this.createSelectors(data.mandatory, false)
-
-    new Setting(contentEl).setName('Select the global settings you want to overwrite for your code block.')
-
     this.createSelectors(data.optional, true)
 
     /* Create text area */
@@ -395,17 +425,17 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlockContent()
 
     const setting = new Setting(this.contentEl)
-      .setName('Output')
-      .addTextArea(cb => {
+    .setName('Output')
+    .addTextArea(cb => {
 
-        cb.setValue(codeBlockContent).setDisabled(true)
+      cb.setValue(codeBlockContent).setDisabled(true)
 
-        this.textElement = cb.inputEl
+      this.textElement = cb.inputEl
 
-        cb.inputEl.style.width = '100%'
-        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-      })
+      cb.inputEl.style.width = '100%'
+      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+    })
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
