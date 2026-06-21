@@ -91,9 +91,6 @@ abstract class Selector {
 
   abstract resetValueToCurrent(): void
 
-  //   // gets overwritten
-  // }
-
   addResetButton() {
     let tooltip: string = this.anyData.current ? `Reset to ${this.anyData.current}` : `Reset`
     this.setting.addExtraButton(eb =>
@@ -171,6 +168,10 @@ class ColorSelector extends StringValueSelector {
       .onChange(value => this.write(value))
     )
     this.addResetButton()
+  }
+
+  resetValueToCurrent(): void {
+    this.resettableStringComponent?.setValue('#000000')
   }
 }
 
