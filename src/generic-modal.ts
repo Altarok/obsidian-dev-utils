@@ -487,6 +487,11 @@ export class GenericModal {
 
   private createCodeBlock = (): string => {
     const {mandatory, optional, output} = this.data
+    /*
+     * TODO change to record string string
+     *
+     * TODO remove key and : for mandatory input, add a flag for this
+     */
     const settings: MandatoryInput[] = []
     let code: string = ''
 
