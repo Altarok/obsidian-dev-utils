@@ -73,9 +73,9 @@ abstract class Selector {
   }
 
   revert() {
+    this.resetValueToCurrent() // set modal value
     this.output[this.anyData.key] = undefined // set output value
     this.callback.updateTextArea()
-    this.resetValueToCurrent() // set modal value
   }
 
   addName() {
