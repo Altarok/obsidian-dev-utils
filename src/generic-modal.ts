@@ -38,7 +38,7 @@ export type GenericModalInput = {
   readonly codeBlockId: string
   readonly mandatory: readonly MandatoryInput[]
   readonly optional: readonly OptionalInput[]
-  readonly createCodeBlock: () => string
+  // readonly createCodeBlock: () => string
   readonly onUpdatePreview?: (previewEl: HTMLDivElement) => void
 
   output: Record<string, OutputData>
@@ -481,15 +481,14 @@ export class GenericModal {
   }
 
   private createCodeBlockContent() {
-    return this.data.createCodeBlock()
+    // return this.data.createCodeBlock()
+    return this.createCodeBlock()
   }
 
-  const createCodeBlock = (): string => {
-    const {optional, output} = this.data
-    if (!output.smiles) return ''
-    let code = `${output.smiles}\n`
-
+  private createCodeBlock = (): string => {
+    const {mandatory, optional, output} = this.data
     const settings: MandatoryInput[] = []
+    let code: string = ''
 
     const addToSettings = (o: OptionalInput): void => {
       if (o.type === 'expandable')
@@ -497,6 +496,14 @@ export class GenericModal {
       else if (!!o && 'key' in o)
         settings.push(o)
     }
+
+    mandatory.forEach((m: MandatoryInput) => {
+      if (!output[m.key]) return ''
+      addToSettings(m)
+    })
+
+    // if (!output.smiles) return ''
+    // let code = `${output.smiles}\n`
 
     optional.forEach((o: OptionalInput) =>
       addToSettings(o)
