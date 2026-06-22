@@ -246,7 +246,10 @@ class ExpandableSelector {
   hide() {
     this.toggleActive = false
     this.bc?.setIcon('lucide-chevron-down')
+    // Re-enable hiding rules during closing animations
+    this.wrapperEl.style.overflow = 'hidden'
     this.wrapperEl.style.height = '0px'
+    this.wrapperEl.style.backgroundColor = 'transparent'
   }
 
   private show() {
