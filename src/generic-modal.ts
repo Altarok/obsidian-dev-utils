@@ -513,9 +513,9 @@ export class GenericModal {
     }
 
     mandatory.forEach((m: MandatoryInput): void => {
-      /* Output knows what it's interested in - ignore others */
-      if (!output[m.key]) return
-      addToSettings(m)
+      // Output knows what it's interested in - ignore others
+      // this does not work for expendables, which in this case are not an option
+      if (output[m.key]) addToSettings(m)
     })
 
     optional.forEach((o: OptionalInput) =>
