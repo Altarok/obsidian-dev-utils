@@ -253,9 +253,19 @@ class ExpandableSelector {
     this.toggleActive = true
     this.bc?.setIcon('lucide-chevron-up')
     this.cb.collapseOtherExpandableSelectors(this)
+
     this.wrapperEl.style.height = `${this.wrapperEl.scrollHeight}px`
     this.wrapperEl.style.backgroundColor = 'var(--background-modifier-box-shadow)'
-    this.wrapperEl.style.borderRadius = '4px'
+    this.wrapperEl.style.borderRadius = '8px'
+
+    // Once the transition completes, uncap the container
+    // so mobile layouts don't clip text or rows
+    setTimeout(() => {
+      if (this.toggleActive) {
+        this.wrapperEl.style.height = 'auto'
+        this.wrapperEl.style.overflow = 'visible'
+      }
+    }, 250)
   }
 
   draw() {
@@ -283,10 +293,18 @@ class ExpandableSelector {
       const subSetting = new Setting(this.wrapperEl)
 
       subSetting.settingEl.style.display = 'flex'
+      subSetting.settingEl.style.flexShrink = '0' // new
+      // Ensures touch targets conform to standard mobile interaction guidelines
+      subSetting.settingEl.style.minHeight = '44px'
       subSetting.settingEl.style.alignItems = 'center'
       subSetting.settingEl.style.justifyContent = 'space-between'
       subSetting.settingEl.style.width = '100%'
-      subSetting.settingEl.style.padding = '6px 12px' // Creates clean inner layout breathing room
+      // Creates clean inner layout breathing room
+      subSetting.settingEl.style.padding = '6px 12px'
+
+      subSetting.controlEl.style.display = 'flex'
+      subSetting.controlEl.style.alignItems = 'center'
+      subSetting.controlEl.style.flexShrink = '0'
 
       switch (input.type) { // @fof
         case 'boolean': new BooleanSelector(subSetting, input, output, cb, true).draw(); break
