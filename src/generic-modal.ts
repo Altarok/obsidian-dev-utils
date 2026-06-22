@@ -1,6 +1,16 @@
-import {ColorComponent, Notice, Setting, SliderComponent, ToggleComponent, ValueComponent} from 'obsidian'
+import {
+  ColorComponent,
+  ExtraButtonComponent,
+  Notice,
+  Setting,
+  SettingGroup,
+  SliderComponent,
+  ToggleComponent,
+  ValueComponent
+} from 'obsidian'
 
 export type OutputData = string | boolean | number | undefined
+
 
 function toRecord(strings: readonly string[]): Record<string, string> {
   return Object.fromEntries(strings.map(str => [str, str]))
@@ -10,6 +20,7 @@ type Input = { type: string; prompt: string /* shown to user */ }
 
 type BaseInput = Input & {
   key: string // key in output Record
+  codeBlockKey?: string // optional key in code block, will use key if this is missing
   tooltip?: string // shown to user as tooltip
   current?: boolean | number | string
 }
@@ -38,7 +49,6 @@ export type GenericModalInput = {
   readonly codeBlockId: string
   readonly mandatory: readonly MandatoryInput[]
   readonly optional: readonly OptionalInput[]
-  // readonly createCodeBlock: () => string
   readonly onUpdatePreview?: (previewEl: HTMLDivElement) => void
 
   output: Record<string, OutputData>
@@ -73,10 +83,6 @@ abstract class Selector {
 
   addName() {
     let prompt: string = this.anyData.prompt
-    if (this.isOptional && 'current' in this.anyData) {
-      const currVal = this.anyData.current !== undefined ? this.anyData.current : 'none'
-      prompt += ` Preset value is: ${currVal}`
-    }
     this.setting.setName(prompt)
   }
 
@@ -85,11 +91,12 @@ abstract class Selector {
   abstract resetValueToCurrent(): void
 
   addResetButton() {
-    let tooltip: string = this.anyData.current ? `Reset to ${this.anyData.current}` : `Reset`
+    if (!this.isOptional) return
+    let tooltip: string = this.anyData.current ? `Reset to: ${this.anyData.current}` : `Reset`
     this.setting.addExtraButton(eb =>
       eb.setIcon('lucide-rotate-ccw')
-        .setTooltip(tooltip, {delay: -1})
-        .onClick(() => this.revert()))
+      .setTooltip(tooltip, {delay: -1})
+      .onClick(() => this.revert()))
   }
 }
 
@@ -131,11 +138,11 @@ class BooleanSelector extends Selector {
 
     setting.addToggle(tc =>
       this.toggle = tc
-        .setValue(initialValue)
-        .onChange((active: boolean) => {
-          if (active === initialValue) this.revert()
-          else this.write(active)
-        })
+      .setValue(initialValue)
+      .onChange((active: boolean) => {
+        if (active === initialValue) this.revert()
+        else this.write(active)
+      })
     )
 
     this.addResetButton()
@@ -157,8 +164,8 @@ class ColorSelector extends StringValueSelector {
     super.addName()
     setting.addColorPicker((color: ColorComponent) =>
       this.resettableStringComponent = color
-        .setValue(data.current)
-        .onChange(value => this.write(value))
+      .setValue(data.current)
+      .onChange(value => this.write(value))
     )
     this.addResetButton()
   }
@@ -179,9 +186,9 @@ class DropdownSelector extends StringValueSelector {
     super.addName()
     setting.addDropdown(dd =>
       this.resettableStringComponent = dd
-        .addOptions(toRecord(data.dropdownOptions))
-        .setValue(data.current)
-        .onChange((value: string) => this.write(value))
+      .addOptions(toRecord(data.dropdownOptions))
+      .setValue(data.current)
+      .onChange((value: string) => this.write(value))
     )
     this.addResetButton()
   }
@@ -202,16 +209,16 @@ class DropdownMultiSelector extends Selector {
     super.addName()
 
     setting
-      .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
-      .addDropdown(button =>
-        button
-          .addOptions(toRecord(data.dropdownOptions))
-          .onChange((value: string) => {
-            if (!this.selections.includes(value)) this.selections.push(value)
-            this.concatenatedSelections = this.selections.join(this.separator)
-            this.write(value)
-          })
-      )
+    .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
+    .addDropdown(button =>
+      button
+      .addOptions(toRecord(data.dropdownOptions))
+      .onChange((value: string) => {
+        if (!this.selections.includes(value)) this.selections.push(value)
+        this.concatenatedSelections = this.selections.join(this.separator)
+        this.write(value)
+      })
+    )
 
     this.addResetButton()
   }
@@ -222,81 +229,77 @@ class DropdownMultiSelector extends Selector {
   }
 }
 
-class ExpandableSelector /* extends Selector */ {
+class ExpandableSelector {
   private toggleActive: boolean = false
-  private hiddenSettings: Setting[] = []
   private hasBuilt: boolean = false
+  private bc?: ExtraButtonComponent
+  private wrapperEl!: HTMLDivElement;
 
-  // private button: any
-
-  constructor(public setting: Setting, public contentEl: HTMLElement, public data: ExpandableInput, public output: Record<string, OutputData>, public callback: GenericModal) {
-    // super(setting, data, output, callback, true)
+  constructor(public contentEl: HTMLElement, public data: ExpandableInput, public output: Record<string, OutputData>, public cb: GenericModal) {
   }
 
-  hideOrShow() {
-    for (const s of this.hiddenSettings)
-      s.settingEl.style.display = this.toggleActive ? '' /* unhide */ : 'none' /* hide */
+  hideOrShow(toggleActive: boolean) {
+    if (toggleActive) this.show()
+    else this.hide()
+  }
+
+  hide() {
+    this.toggleActive = false
+    this.bc?.setIcon('lucide-chevron-down')
+    this.wrapperEl.style.height = '0px'
+  }
+
+  private show() {
+    this.toggleActive = true
+    this.bc?.setIcon('lucide-chevron-up')
+    this.cb.collapseOtherExpandableSelectors(this)
+    this.wrapperEl.style.height = `${this.wrapperEl.scrollHeight}px`
+    this.wrapperEl.style.backgroundColor = 'var(--background-modifier-box-shadow)'
+    this.wrapperEl.style.borderRadius = '4px'
   }
 
   draw() {
     if (this.hasBuilt) {
-      this.hideOrShow()
+      this.hideOrShow(this.toggleActive)
       return
     }
 
-    const {setting, data, output, contentEl, callback} = this
+    const {data, output, contentEl, cb} = this
+    const settingGroup: SettingGroup = new SettingGroup(contentEl)
 
-    for (const oldSetting of this.hiddenSettings) {
-      oldSetting.settingEl.remove()
-    }
+    settingGroup.setHeading(data.prompt)
 
-    this.hiddenSettings = []
+    settingGroup.addExtraButton(bc =>
+      this.bc = bc.setIcon('lucide-chevron-down').onClick(() => this.hideOrShow(!this.toggleActive))
+    )
 
-    setting.clear()
-    setting.setName(data.prompt)
-
-    setting.addExtraButton(bc => {
-      // this.button = bc
-      bc.setIcon('lucide-chevron-down')
-      bc.onClick(() => {
-        this.toggleActive = !this.toggleActive
-        bc.setIcon(this.toggleActive ? 'lucide-chevron-up' : 'lucide-chevron-down')
-        this.hideOrShow()
-      })
-    })
+    /* Create the outer grid container and inner content wrapper for CSS transitions */
+    this.wrapperEl = contentEl.createDiv()
+    this.wrapperEl.style.overflow = 'hidden'
+    this.wrapperEl.style.transition = 'height 0.25s ease-out'
+    this.wrapperEl.style.marginBottom = '12px'
 
     for (const input of data.nestedInput) {
+      const subSetting = new Setting(this.wrapperEl)
 
-      const subSetting = new Setting(contentEl)
-      this.hiddenSettings.push(subSetting)
+      subSetting.settingEl.style.display = 'flex'
+      subSetting.settingEl.style.alignItems = 'center'
+      subSetting.settingEl.style.justifyContent = 'space-between'
+      subSetting.settingEl.style.width = '100%'
+      subSetting.settingEl.style.padding = '6px 12px' // Creates clean inner layout breathing room
 
-      switch (input.type) {
-        case 'boolean':
-          new BooleanSelector(subSetting, input, output, callback, true).draw()
-          break
-        case 'color':
-          new ColorSelector(subSetting, input, output, callback, true).draw()
-          break
-        case 'dropdown':
-          new DropdownSelector(subSetting, input, output, callback, true).draw()
-          break
-        case 'dropdown-multi':
-          new DropdownMultiSelector(subSetting, input, output, callback, true).draw()
-          break
-        // case 'expandable':
-        //     new ExpandableSelector(new Setting(contentEl), input, output, callback).draw()
-        //   break
-        case 'slider':
-          new SliderSelector(subSetting, input, output, callback, true).draw()
-          break
-        case 'string':
-          new StringSelector(subSetting, input, output, callback, true).draw()
-          break
-      }
+      switch (input.type) { // @fof
+        case 'boolean': new BooleanSelector(subSetting, input, output, cb, true).draw(); break
+        case 'color': new ColorSelector(subSetting, input, output, cb, true).draw(); break
+        case 'dropdown': new DropdownSelector(subSetting, input, output, cb, true).draw(); break
+        case 'dropdown-multi': new DropdownMultiSelector(subSetting, input, output, cb, true).draw(); break
+        case 'slider': new SliderSelector(subSetting, input, output, cb, true).draw(); break
+        case 'string': new StringSelector(subSetting, input, output, cb, true).draw(); break
+      } // @fon
+
     }
 
-    this.hideOrShow()
-    // this.addExplanationAsTooltip()
+    this.hideOrShow(this.toggleActive)
     this.hasBuilt = true
   }
 
@@ -314,11 +317,17 @@ class SliderSelector extends Selector {
     setting.clear()
     super.addName()
 
+    let lowerBound: number = data.from
+    let upperBound: number = data.to
+
+    if (data.current < lowerBound) lowerBound = data.current
+    else if (data.current > upperBound) upperBound = data.current
+
     setting.addSlider(sc => {
       this.slider = sc
-        .setValue(data.current)
-        .setLimits(data.from, data.to, data.step)
-        .onChange((value: number) => this.write(value))
+      .setValue(data.current)
+      .setLimits(lowerBound, upperBound, data.step)
+      .onChange((value: number) => this.write(value))
     })
 
     super.addResetButton()
@@ -342,7 +351,7 @@ class StringSelector extends StringValueSelector {
     setting.addText(tc => {
       this.resettableStringComponent = tc
       tc.setValue(data.current)
-        .onChange((value: string) => this.write(value))
+      .onChange((value: string) => this.write(value))
     })
     super.addResetButton()
   }
@@ -352,6 +361,7 @@ export class GenericModal {
   private textElement!: HTMLTextAreaElement
   private previewContainerEl!: HTMLDivElement
   private adjustHeight!: () => void
+  private expandableSelectors: ExpandableSelector[] = []
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
@@ -375,7 +385,9 @@ export class GenericModal {
         break
       case 'expandable':
         if (isOptional) {
-          new ExpandableSelector(new Setting(contentEl), contentEl, input, output, this).draw()
+          const expandableSelector = new ExpandableSelector(contentEl, input, output, this);
+          expandableSelector.draw()
+          this.expandableSelectors.push(expandableSelector)
         } else {
           console.warn('Mandatory input can not be expandable')
         }
@@ -416,17 +428,17 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlockContent()
 
     const setting = new Setting(this.contentEl)
-      .setName('Output')
-      .addTextArea(cb => {
+    .setName('Output')
+    .addTextArea(cb => {
 
-        cb.setValue(codeBlockContent).setDisabled(true)
+      cb.setValue(codeBlockContent).setDisabled(true)
 
-        this.textElement = cb.inputEl
+      this.textElement = cb.inputEl
 
-        cb.inputEl.style.width = '100%'
-        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-      })
+      cb.inputEl.style.width = '100%'
+      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+    })
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
@@ -520,14 +532,23 @@ export class GenericModal {
       const localValue = output[setting.key]
       if (localValue === undefined || localValue === '') continue
 
-      const key: string = setting.key
       const globalValue = setting.current
       if (globalValue === localValue) continue
 
-      code += `${key}: ${localValue}\n`
+      const key: string = setting.codeBlockKey ?? setting.key
+
+      code += key ? `${key}: ${localValue}\n` : `${localValue}\n`
     }
 
     return `\`\`\`smiles\n${code}\`\`\``
+  }
+
+  /** @param expandable - gets expanded right now,  */
+  collapseOtherExpandableSelectors(expandable: ExpandableSelector) {
+    this.expandableSelectors.forEach(e => {
+        if (e !== expandable) e.hide()
+      }
+    )
   }
 
 }
