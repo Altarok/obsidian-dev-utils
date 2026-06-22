@@ -348,11 +348,9 @@ class StringSelector extends StringValueSelector {
     setting.clear()
     super.addName()
 
-    setting.addText(tc => {
-      this.resettableStringComponent = tc
+    setting.addText(tc => this.resettableStringComponent =
       tc.setValue(data.current)
-      .onChange((value: string) => this.write(value))
-    })
+      .onChange((value: string) => this.write(value)))
     super.addResetButton()
   }
 }
@@ -514,13 +512,11 @@ export class GenericModal {
         settings.push(o)
     }
 
-    mandatory.forEach((m: MandatoryInput) => {
-      if (!output[m.key]) return ''
+    mandatory.forEach((m: MandatoryInput): void => {
+      /* Output knows what it's interested in - ignore others */
+      if (!output[m.key]) return
       addToSettings(m)
     })
-
-    // if (!output.smiles) return ''
-    // let code = `${output.smiles}\n`
 
     optional.forEach((o: OptionalInput) =>
       addToSettings(o)
