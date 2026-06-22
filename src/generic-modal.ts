@@ -246,10 +246,10 @@ class ExpandableSelector {
   hide() {
     this.toggleActive = false
     this.bc?.setIcon('lucide-chevron-down')
-    // Re-enable hiding rules during closing animations
-    this.wrapperEl.style.overflow = 'hidden'
     this.wrapperEl.style.height = '0px'
-    this.wrapperEl.style.backgroundColor = 'transparent'
+    // new
+    // this.wrapperEl.style.overflow = 'hidden'
+    // this.wrapperEl.style.backgroundColor = 'transparent'
   }
 
   private show() {
@@ -263,12 +263,12 @@ class ExpandableSelector {
 
     // Once the transition completes, uncap the container
     // so mobile layouts don't clip text or rows
-    setTimeout(() => {
-      if (this.toggleActive) {
-        this.wrapperEl.style.height = 'auto'
-        this.wrapperEl.style.overflow = 'visible'
-      }
-    }, 250)
+    // setTimeout(() => {
+    //   if (this.toggleActive) {
+    //     this.wrapperEl.style.height = 'auto'
+    //     this.wrapperEl.style.overflow = 'visible'
+    //   }
+    // }, 250)
   }
 
   draw() {
@@ -296,18 +296,18 @@ class ExpandableSelector {
       const subSetting = new Setting(this.wrapperEl)
 
       subSetting.settingEl.style.display = 'flex'
-      subSetting.settingEl.style.flexShrink = '0' // new
+      // subSetting.settingEl.style.flexShrink = '0' // new
       // Ensures touch targets conform to standard mobile interaction guidelines
-      subSetting.settingEl.style.minHeight = '44px'
+      // subSetting.settingEl.style.minHeight = '44px'
       subSetting.settingEl.style.alignItems = 'center'
       subSetting.settingEl.style.justifyContent = 'space-between'
       subSetting.settingEl.style.width = '100%'
       // Creates clean inner layout breathing room
       subSetting.settingEl.style.padding = '6px 12px'
-
-      subSetting.controlEl.style.display = 'flex'
-      subSetting.controlEl.style.alignItems = 'center'
-      subSetting.controlEl.style.flexShrink = '0'
+      //
+      // subSetting.controlEl.style.display = 'flex'
+      // subSetting.controlEl.style.alignItems = 'center'
+      // subSetting.controlEl.style.flexShrink = '0'
 
       switch (input.type) { // @fof
         case 'boolean': new BooleanSelector(subSetting, input, output, cb, true).draw(); break
