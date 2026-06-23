@@ -12,8 +12,13 @@ export type OutputData = string | boolean | number | undefined
 
 const toRecord = (strings: readonly string[]): Record<string, string> => Object.fromEntries(strings.map(s => [s, s]))
 
-type Input = { type: string; prompt: string /* shown to user */ }
-type BaseInput = Input & { key: string; codeBlockKey?: string; tooltip?: string; current?: boolean | number | string }
+type Input = { type: string; prompt: string }
+type BaseInput = Input & {
+  key: string;
+  ignoreKeyInCodeBlock?: boolean;
+  tooltip?: string;
+  current?: boolean | number | string
+}
 type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
 type ColorInput = BaseInput & { type: 'color'; current: string }
 type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
@@ -22,10 +27,12 @@ type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; 
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
 type ExpandableInput = Input & { type: 'expandable'; nestedInput: readonly OptionalInput[] }
 
-export type MandatoryInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput>
-export type OptionalInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput
-  | ExpandableInput>
-export type AnyInput = MandatoryInput | OptionalInput
+type NonExpandableInput = BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput
+
+export type MandatoryInput = Readonly<NonExpandableInput>
+export type OptionalInput = Readonly<NonExpandableInput | ExpandableInput>
+
+type AnyInput = MandatoryInput | OptionalInput
 
 export type GenericModalInput = {
   readonly title?: string
@@ -38,162 +45,140 @@ export type GenericModalInput = {
   output: Record<string, OutputData>
 }
 
-abstract class Selector {
-  protected constructor(
-    readonly setting: Setting,
-    private readonly anyData: MandatoryInput,
-    public output: Record<string, OutputData>,
-    public readonly callback: GenericModal,
-    public readonly isOptional: boolean) {
+type SelectorContext = {
+  setting: Setting
+  input: NonExpandableInput
+  output: Record<string, OutputData>
+  callback: GenericModal
+  isOptional: boolean
+}
+
+const SelectorRegistry: Record<string, (ctx: SelectorContext) => void> = {
+  boolean: ({setting, input, output, callback, isOptional}) =>
+    new BooleanSelector(setting, input as BooleanInput, output, callback, isOptional).draw(),
+  color: ({setting, input, output, callback, isOptional}) =>
+    new ColorSelector(setting, input as ColorInput, output, callback, isOptional).draw(),
+  dropdown: ({setting, input, output, callback, isOptional}) =>
+    new DropdownSelector(setting, input as DropdownInput, output, callback, isOptional).draw(),
+  'dropdown-multi': ({setting, input, output, callback, isOptional}) =>
+    new DropdownMultiSelector(setting, input as DropdownMultiInput, output, callback, isOptional).draw(),
+  slider: ({setting, input, output, callback, isOptional}) =>
+    new SliderSelector(setting, input as SliderInput, output, callback, isOptional).draw(),
+  string: ({setting, input, output, callback, isOptional}) =>
+    new StringSelector(setting, input as StringInput, output, callback, isOptional).draw(),
+}
+
+type ComponentTypeForReset<T> =
+  T extends BooleanInput ? ToggleComponent :
+    T extends SliderInput ? SliderComponent :
+      ValueComponent<string>
+
+abstract class Selector<T extends MandatoryInput = MandatoryInput> {
+  resettableComponent?: ComponentTypeForReset<T>
+
+  constructor(public readonly setting: Setting,
+              public readonly data: T,
+              public output: Record<string, OutputData>, // not readonly
+              public readonly callback: GenericModal,
+              public readonly isOptional: boolean) {
   }
 
   private validate(value: string): boolean {
-    if (this.anyData.type !== 'string' || !this.anyData.validationPattern) return true
-    return this.anyData.validationPattern?.test(value) ?? true
+    if (this.data.type !== 'string' || !this.data.validationPattern) return true
+    return this.data.validationPattern?.test(value) ?? true
   }
 
   write(value: OutputData) {
     if (typeof value === 'string' && !this.validate(value)) return
-    // if (this.output?.[this.anyData.key])
-    this.output[this.anyData.key] = value
+    this.output[this.data.key] = value
     this.callback.updateTextArea()
   }
 
   revert() {
     this.resetValueToCurrent() // set modal value before output
-    this.output[this.anyData.key] = undefined // set output value
+    this.output[this.data.key] = undefined // set output value
     this.callback.updateTextArea()
   }
 
   addName() {
-    let prompt: string = this.anyData.prompt
-    this.setting.setName(prompt)
+    this.setting.setName(this.data.prompt)
   }
 
   abstract draw(): void
 
-  abstract resetValueToCurrent(): void
-
   addResetButton() {
     if (!this.isOptional) return
-    let tooltip: string = this.anyData.current ? `Reset to: ${this.anyData.current}` : `Reset`
+    let tooltip: string = this.data.current ? `Reset to: ${this.data.current}` : `Reset`
     this.setting.addExtraButton(eb =>
       eb.setIcon('lucide-rotate-ccw')
       .setTooltip(tooltip, {delay: -1})
       .onClick(() => this.revert()))
   }
-}
-
-abstract class StringValueSelector extends Selector {
-  resettableStringComponent?: ValueComponent<string>
-
-  protected constructor(setting: Setting,
-                        readonly data: ColorInput | DropdownInput | StringInput,
-                        output: Record<string, OutputData>,
-                        callback: GenericModal,
-                        isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
 
   resetValueToCurrent(): void {
-    this.resettableStringComponent?.setValue(this.data.current)
+    if (!this.resettableComponent) return
+    if (this.data.type === 'color') {
+      (this.resettableComponent as ValueComponent<string>).setValue('#000000')
+    } else if (this.data.type === 'dropdown-multi') {
+      // TODO
+    } else {
+      this.resettableComponent.setValue(this.data.current as never)
+    }
   }
 }
 
-class BooleanSelector extends Selector {
-  private readonly initialValue: boolean
-  private toggle?: ToggleComponent
-
-  constructor(
-    setting: Setting,
-    data: BooleanInput,
-    output: Record<string, OutputData>,
-    callback: GenericModal,
-    readonly isOptional: boolean
-  ) {
-    super(setting, data, output, callback, isOptional)
-    this.initialValue = data.current
-  }
-
+class BooleanSelector extends Selector<BooleanInput> {
   draw() {
-    const {setting, initialValue} = this
+    const {setting, data} = this
     setting.clear()
     super.addName()
 
-    setting.addToggle(tc =>
-      this.toggle = tc
-      .setValue(initialValue)
-      .onChange((active: boolean) => {
-        if (active === initialValue) this.revert()
+    setting.addToggle(tc => this.resettableComponent =
+      tc.setValue(data.current).onChange((active: boolean) => {
+        if (active === data.current) this.revert()
         else this.write(active)
       })
     )
 
     this.addResetButton()
   }
-
-  resetValueToCurrent(): void {
-    this.toggle?.setValue(this.initialValue)
-  }
 }
 
-class ColorSelector extends StringValueSelector {
-  constructor(setting: Setting, readonly data: ColorInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
-
+class ColorSelector extends Selector<ColorInput> {
   draw() {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addColorPicker(color =>
-      this.resettableStringComponent = color
-      .setValue(data.current)
-      .onChange(value => this.write(value))
-    )
+    setting.addColorPicker(c => this.resettableComponent =
+      c.setValue(data.current).onChange(value => this.write(value)))
     this.addResetButton()
   }
-
-  resetValueToCurrent(): void {
-    this.resettableStringComponent?.setValue('#000000')
-  }
 }
 
-class DropdownSelector extends StringValueSelector {
-  constructor(setting: Setting, public data: DropdownInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
-
+class DropdownSelector extends Selector<DropdownInput> {
   draw() {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addDropdown(dd =>
-      this.resettableStringComponent = dd
-      .addOptions(toRecord(data.dropdownOptions))
-      .setValue(data.current)
+    setting.addDropdown(dd => this.resettableComponent =
+      dd.addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
       .onChange((value: string) => this.write(value))
     )
     this.addResetButton()
   }
 }
 
-class DropdownMultiSelector extends Selector {
+class DropdownMultiSelector extends Selector<DropdownMultiInput> {
   private selections: string[] = []
   private concatenatedSelections: string = ''
   private separator: string = ',' // add data.separator?
-
-  constructor(setting: Setting, public data: DropdownMultiInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
 
   draw() {
     const {setting, data} = this
     setting.clear()
     super.addName()
 
-    setting
-    .addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
+    setting.addText(tc => tc.setValue(this.concatenatedSelections).setDisabled(true))
     .addDropdown(button =>
       button
       .addOptions(toRecord(data.dropdownOptions))
@@ -223,8 +208,7 @@ class ExpandableSelector {
   }
 
   hideOrShow(toggleActive: boolean) {
-    if (toggleActive) this.show()
-    else this.hide()
+    if (toggleActive) this.show(); else this.hide()
   }
 
   hide() {
@@ -249,7 +233,7 @@ class ExpandableSelector {
       return
     }
 
-    const {data, output, contentEl, cb} = this
+    const {data, output, contentEl, cb: callback} = this
     const settingGroup: SettingGroup = new SettingGroup(contentEl)
 
     settingGroup.setHeading(data.prompt)
@@ -258,37 +242,43 @@ class ExpandableSelector {
       this.bc = bc.setIcon('lucide-chevron-down').onClick(() => this.hideOrShow(!this.toggleActive))
     )
 
-    /* Create the outer grid container and inner content wrapper for CSS transitions */
+    // Create the outer grid container and inner content wrapper for CSS transitions
     this.wrapperEl = contentEl.createDiv()
     this.wrapperEl.style.overflow = 'hidden'
     this.wrapperEl.style.transition = 'height 0.25s ease-out'
     this.wrapperEl.style.marginBottom = '12px'
 
-    for (const input of data.nestedInput) {
+    const createSubSettingWithInlineCss = () => {
       const subSetting = new Setting(this.wrapperEl)
 
-      subSetting.settingEl.style.display = 'flex'
-      subSetting.settingEl.style.flexShrink = '0' // new
-      // Ensures touch targets conform to standard mobile interaction guidelines
-      subSetting.settingEl.style.minHeight = '44px'
-      subSetting.settingEl.style.alignItems = 'center'
-      subSetting.settingEl.style.justifyContent = 'space-between'
-      subSetting.settingEl.style.width = '100%'
-      // Creates clean inner layout breathing room
-      subSetting.settingEl.style.padding = '6px 12px'
+      Object.assign(subSetting.settingEl.style, {
+        display: 'flex',
+        flexShrink: '0',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        width: '100%',
+        padding: '6px 12px'
+      })
 
-      subSetting.controlEl.style.display = 'flex'
-      subSetting.controlEl.style.alignItems = 'center'
-      subSetting.controlEl.style.flexShrink = '0'
+      Object.assign(subSetting.controlEl.style, {
+        display: 'flex',
+        alignItems: 'center',
+        flexShrink: '0'
+      })
 
-      switch (input.type) { // @fof
-        case 'boolean': new BooleanSelector(subSetting, input, output, cb, true).draw(); break
-        case 'color': new ColorSelector(subSetting, input, output, cb, true).draw(); break
-        case 'dropdown': new DropdownSelector(subSetting, input, output, cb, true).draw(); break
-        case 'dropdown-multi': new DropdownMultiSelector(subSetting, input, output, cb, true).draw(); break
-        case 'slider': new SliderSelector(subSetting, input, output, cb, true).draw(); break
-        case 'string': new StringSelector(subSetting, input, output, cb, true).draw(); break
-      } // @fon
+      return subSetting
+    }
+
+    for (const input of data.nestedInput) {
+
+      if (input.type === 'expandable') {
+        continue
+      }
+
+      const render = SelectorRegistry[input.type]
+      if (render) {
+        render({setting: createSubSettingWithInlineCss(), input, output, callback, isOptional: true})
+      }
 
     }
 
@@ -298,13 +288,7 @@ class ExpandableSelector {
 
 }
 
-class SliderSelector extends Selector {
-  slider?: SliderComponent
-
-  constructor(setting: Setting, readonly data: SliderInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
-
+class SliderSelector extends Selector<SliderInput> {
   draw() {
     const {setting, data} = this
     setting.clear()
@@ -316,34 +300,24 @@ class SliderSelector extends Selector {
     if (data.current < lowerBound) lowerBound = data.current
     else if (data.current > upperBound) upperBound = data.current
 
-    setting.addSlider(sc =>
-      this.slider = sc
-      .setValue(data.current)
-      .setLimits(lowerBound, upperBound, data.step)
+    setting.addSlider(sc => this.resettableComponent =
+      sc.setValue(data.current).setLimits(lowerBound, upperBound, data.step)
       .onChange((value: number) => this.write(value))
     )
 
     super.addResetButton()
   }
-
-  resetValueToCurrent(): void {
-    this.slider?.setValue(this.data.current)
-  }
 }
 
-class StringSelector extends StringValueSelector {
-  constructor(setting: Setting, readonly data: StringInput, output: Record<string, OutputData>, callback: GenericModal, readonly isOptional: boolean) {
-    super(setting, data, output, callback, isOptional)
-  }
-
+class StringSelector extends Selector<StringInput> {
   draw() {
     const {setting, data} = this
     setting.clear()
     super.addName()
 
-    setting.addText(tc => this.resettableStringComponent =
-      tc.setValue(data.current)
-      .onChange((value: string) => this.write(value)))
+    setting.addText(tc => this.resettableComponent =
+      tc.setValue(data.current).onChange((value: string) => this.write(value)))
+
     super.addResetButton()
   }
 }
@@ -357,38 +331,28 @@ export class GenericModal {
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
   }
 
-  createSelectors(inputs: readonly AnyInput[], isOptional: boolean) {
+  private createSelectors(inputs: readonly AnyInput[], isOptional: boolean) {
     const {contentEl, data} = this
     const output = data.output
 
-    for (const input of inputs) switch (input.type) {
-      case 'boolean':
-        new BooleanSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
-      case 'color':
-        new ColorSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
-      case 'dropdown':
-        new DropdownSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
-      case 'dropdown-multi':
-        new DropdownMultiSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
-      case 'expandable':
+
+    for (const input of inputs) {
+
+      if (input.type === 'expandable') {
         if (isOptional) {
-          const expandableSelector = new ExpandableSelector(contentEl, input, output, this);
+          const expandableSelector = new ExpandableSelector(contentEl, input, output, this)
           expandableSelector.draw()
           this.expandableSelectors.push(expandableSelector)
         } else {
           console.warn('Mandatory input can not be expandable')
         }
-        break
-      case 'slider':
-        new SliderSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
-      case 'string':
-        new StringSelector(new Setting(contentEl), input, output, this, isOptional).draw()
-        break
+        continue
+      }
+
+      const render = SelectorRegistry[input.type]
+      if (render) {
+        render({setting: new Setting(contentEl), input, output, callback: this, isOptional})
+      }
     }
   }
 
@@ -401,16 +365,15 @@ export class GenericModal {
     this.createSelectors(data.mandatory, false)
     this.createSelectors(data.optional, true)
 
-    /* Create text area */
-    this.createTextArea()
-
     /* create live SVG */
     this.previewContainerEl = contentEl.createDiv()
     this.previewContainerEl.style.width = '100%'
     this.previewContainerEl.style.display = 'flex'
     this.previewContainerEl.style.justifyContent = 'center'
-    this.previewContainerEl.style.marginBottom = '1.5rem'
+    this.previewContainerEl.style.marginBottom = '0'
 
+    /* Create text area */
+    this.createTextArea()
     this.updateTextArea()
   }
 
@@ -418,34 +381,25 @@ export class GenericModal {
 
     const codeBlockContent: string = this.createCodeBlock()
 
-    const setting = new Setting(this.contentEl)
-    .setName('Output')
+    const setting = new Setting(this.contentEl).setName('Output')
     .addTextArea(cb => {
-
       cb.setValue(codeBlockContent).setDisabled(true)
-
       this.textElement = cb.inputEl
-
       cb.inputEl.style.width = '100%'
       cb.inputEl.style.height = '80px' // Set a generous default height for the code block
       cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-    })
+    }).addExtraButton(bc => bc
+      .setIcon('copy')
+      .onClick(async () => this.copyToClipboard())
+      .setTooltip('Copy entire code block to clipboard', {'delay': -1})
+    )
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
       this.textElement.style.height = `${this.textElement.scrollHeight}px`
     }
 
-    // this.textElement.addEventListener('input', this.adjustHeight)
-
     this.adjustHeight()
-
-    new Setting(this.contentEl).addButton(bc => bc
-      .setIcon('copy')
-      .onClick(async () => this.copyToClipboard())
-      .setTooltip('Copy entire code block to clipboard', {'delay': -1})
-      .setButtonText('Copy')
-    )
 
     setting.controlEl.style.width = '100%'
     setting.controlEl.style.flexGrow = '1'
@@ -482,52 +436,40 @@ export class GenericModal {
     }
   }
 
+  flattenInput(inputs: readonly OptionalInput[]): NonExpandableInput[] {
+    return inputs.flatMap(input =>
+      input.type === 'expandable' ? this.flattenInput(input.nestedInput) : [input]
+    )
+  }
+
   private createCodeBlock = (): string => {
     const {codeBlockId, mandatory, optional, output} = this.data
-    // TODO change to record <string string>
-    const settings: MandatoryInput[] = []
-    let code: string = ''
 
-    const addToSettings = (o: OptionalInput): void => {
-      if (o.type === 'expandable')
-        o.nestedInput.forEach((o2: OptionalInput) => addToSettings(o2))
-      else if (!!o && 'key' in o)
-        settings.push(o)
-    }
+    // Keep only mandatory input needed for code block
+    const activeMandatory: MandatoryInput[] = mandatory.filter(m => output[m.key])
 
-    mandatory.forEach((m: MandatoryInput): void => {
-      // Output knows what it's interested in - ignore others
-      // this does not work for expendables, which in this case are not an option
-      if (output[m.key]) addToSettings(m)
-    })
+    const allFlatSettings = this.flattenInput([...activeMandatory, ...optional])
 
-    optional.forEach((o: OptionalInput) =>
-      addToSettings(o)
-    )
+    if (allFlatSettings.length === 0) return `\`\`\`${codeBlockId}\n\`\`\``
 
-    for (const setting of settings) {
-      if (!setting) continue
-
+    const codeBlockContent: string = allFlatSettings
+    .filter(setting => { // keep only valid non-default values
       const localValue = output[setting.key]
-      if (localValue === undefined || localValue === '') continue
+      return localValue !== undefined && localValue !== '' && localValue !== setting.current
+    })
+    .map(setting => { // add key prefix if wanted
+      const localValue = output[setting.key]
+      return setting.ignoreKeyInCodeBlock ? `${localValue}` : `${setting.key}: ${localValue}`
+    })
+    .join('\n')
 
-      const globalValue = setting.current
-      if (globalValue === localValue) continue
-
-      const key: string = setting.codeBlockKey ?? setting.key
-
-      code += key ? `${key}: ${localValue}\n` : `${localValue}\n`
-    }
-
-    return `\`\`\`${codeBlockId}\n${code}\`\`\``
+    return `\`\`\`${codeBlockId}\n${codeBlockContent}\n\`\`\``
   }
 
-  /** @param expandable - gets expanded right now,  */
+  /** @param expandable - gets expanded right now */
   collapseOtherExpandableSelectors(expandable: ExpandableSelector) {
     this.expandableSelectors.forEach(e => {
-        if (e !== expandable) e.hide()
-      }
-    )
+      if (e !== expandable) e.hide()
+    })
   }
-
 }
