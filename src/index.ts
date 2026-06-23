@@ -1,9 +1,8 @@
-export {GenericModal} from './generic-modal'
+export {GenericModal} from './code-block-creator/code-block-creator-modal'
 
 export type {
-  AnyInput,
   MandatoryInput,
   OptionalInput,
   GenericModalInput,
   OutputData
-} from './generic-modal'
+} from './code-block-creator/code-block-creator-types'
