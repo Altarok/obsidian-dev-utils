@@ -47,7 +47,7 @@ abstract class Selector<T extends MandatoryInput = MandatoryInput> {
   }
 
   revert() {
-    this.resetValueToCurrent() // set modal value before output
+    this.resetValueToCurrent() // set modal value before(!) output
     this.output[this.data.key] = undefined // set output value
     this.callback.updateTextArea()
   }
