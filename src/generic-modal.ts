@@ -450,9 +450,9 @@ export class GenericModal {
 
     const allFlatSettings = this.flattenInput([...activeMandatory, ...optional])
 
-    if (allFlatSettings.length === 0) return `\`\`\`${codeBlockId}\n\`\`\``
+    // if (allFlatSettings.length === 0) return `\`\`\`${codeBlockId}\n\`\`\``
 
-    const codeBlockContent: string = allFlatSettings
+    let codeBlockContent: string = allFlatSettings
     .filter(setting => { // keep only valid non-default values
       const localValue = output[setting.key]
       return localValue !== undefined && localValue !== '' && localValue !== setting.current
@@ -463,7 +463,9 @@ export class GenericModal {
     })
     .join('\n')
 
-    return `\`\`\`${codeBlockId}\n${codeBlockContent}\n\`\`\``
+    if (codeBlockContent.length > 0) codeBlockContent += '\n'
+
+    return `\`\`\`${codeBlockId}\n${codeBlockContent}\`\`\``
   }
 
   /** @param expandable - gets expanded right now */
