@@ -1,5 +1,4 @@
 import {
-  ColorComponent,
   ExtraButtonComponent,
   Notice,
   Setting,
@@ -11,36 +10,21 @@ import {
 
 export type OutputData = string | boolean | number | undefined
 
-
-function toRecord(strings: readonly string[]): Record<string, string> {
-  return Object.fromEntries(strings.map(str => [str, str]))
-}
+const toRecord = (strings: readonly string[]): Record<string, string> => Object.fromEntries(strings.map(s => [s, s]))
 
 type Input = { type: string; prompt: string /* shown to user */ }
-
-type BaseInput = Input & {
-  key: string // key in output Record
-  codeBlockKey?: string // optional key in code block, will use key if this is missing
-  tooltip?: string // shown to user as tooltip
-  current?: boolean | number | string
-}
-
+type BaseInput = Input & { key: string; codeBlockKey?: string; tooltip?: string; current?: boolean | number | string }
 type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
 type ColorInput = BaseInput & { type: 'color'; current: string }
 type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
 type DropdownMultiInput = BaseInput & { type: 'dropdown-multi'; current: never; dropdownOptions: readonly string[] }
 type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
 type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
-
-type ExpandableInput = Input & {
-  type: 'expandable'; nestedInput: readonly OptionalInput[]
-}
+type ExpandableInput = Input & { type: 'expandable'; nestedInput: readonly OptionalInput[] }
 
 export type MandatoryInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput>
-
 export type OptionalInput = Readonly<BooleanInput | ColorInput | DropdownInput | DropdownMultiInput | SliderInput | StringInput
   | ExpandableInput>
-
 export type AnyInput = MandatoryInput | OptionalInput
 
 export type GenericModalInput = {
@@ -162,7 +146,7 @@ class ColorSelector extends StringValueSelector {
     const {setting, data} = this
     setting.clear()
     super.addName()
-    setting.addColorPicker((color: ColorComponent) =>
+    setting.addColorPicker(color =>
       this.resettableStringComponent = color
       .setValue(data.current)
       .onChange(value => this.write(value))
@@ -246,10 +230,7 @@ class ExpandableSelector {
   hide() {
     this.toggleActive = false
     this.bc?.setIcon('lucide-chevron-down')
-    // Re-enable hiding rules during closing animations
-    this.wrapperEl.style.overflow = 'hidden'
     this.wrapperEl.style.height = '0px'
-    this.wrapperEl.style.backgroundColor = 'transparent'
   }
 
   private show() {
@@ -260,15 +241,6 @@ class ExpandableSelector {
     this.wrapperEl.style.height = `${this.wrapperEl.scrollHeight}px`
     this.wrapperEl.style.backgroundColor = 'var(--background-modifier-box-shadow)'
     this.wrapperEl.style.borderRadius = '8px'
-
-    // Once the transition completes, uncap the container
-    // so mobile layouts don't clip text or rows
-    setTimeout(() => {
-      if (this.toggleActive) {
-        this.wrapperEl.style.height = 'auto'
-        this.wrapperEl.style.overflow = 'visible'
-      }
-    }, 250)
   }
 
   draw() {
@@ -344,12 +316,12 @@ class SliderSelector extends Selector {
     if (data.current < lowerBound) lowerBound = data.current
     else if (data.current > upperBound) upperBound = data.current
 
-    setting.addSlider(sc => {
+    setting.addSlider(sc =>
       this.slider = sc
       .setValue(data.current)
       .setLimits(lowerBound, upperBound, data.step)
       .onChange((value: number) => this.write(value))
-    })
+    )
 
     super.addResetButton()
   }
@@ -444,7 +416,7 @@ export class GenericModal {
 
   private createTextArea() {
 
-    const codeBlockContent: string = this.createCodeBlockContent()
+    const codeBlockContent: string = this.createCodeBlock()
 
     const setting = new Setting(this.contentEl)
     .setName('Output')
@@ -475,11 +447,10 @@ export class GenericModal {
       .setButtonText('Copy')
     )
 
-    // 2. Clear Obsidian's default flex alignment limits on the setting container control block
     setting.controlEl.style.width = '100%'
     setting.controlEl.style.flexGrow = '1'
 
-    // 3. Force the setting row to stack vertically if it gets too crowded
+    // Make live output move below its setting name
     setting.settingEl.style.flexDirection = 'column'
     setting.settingEl.style.alignItems = 'stretch'
 
@@ -487,7 +458,7 @@ export class GenericModal {
   }
 
   updateTextArea() {
-    let codeBlockContent = this.createCodeBlockContent()
+    let codeBlockContent = this.createCodeBlock()
 
     if (this.textElement) {
       this.textElement.value = codeBlockContent
@@ -502,27 +473,18 @@ export class GenericModal {
   }
 
   private async copyToClipboard() {
-    let codeBlockContent = this.createCodeBlockContent()
+    let codeBlockContent = this.createCodeBlock()
     try {
       await window.navigator.clipboard.writeText(codeBlockContent)
-      new Notice('Copied code block to clipboard.')
+      new Notice('Code block copied to clipboard.')
     } catch (err) {
       new Notice('Copy to clipboard failed.')
     }
   }
 
-  private createCodeBlockContent() {
-    // return this.data.createCodeBlock()
-    return this.createCodeBlock()
-  }
-
   private createCodeBlock = (): string => {
-    const {mandatory, optional, output} = this.data
-    /*
-     * TODO change to record string string
-     *
-     * TODO remove key and : for mandatory input, add a flag for this
-     */
+    const {codeBlockId, mandatory, optional, output} = this.data
+    // TODO change to record <string string>
     const settings: MandatoryInput[] = []
     let code: string = ''
 
@@ -557,7 +519,7 @@ export class GenericModal {
       code += key ? `${key}: ${localValue}\n` : `${localValue}\n`
     }
 
-    return `\`\`\`smiles\n${code}\`\`\``
+    return `\`\`\`${codeBlockId}\n${code}\`\`\``
   }
 
   /** @param expandable - gets expanded right now,  */
