@@ -60,7 +60,8 @@ abstract class Selector<T extends MandatoryInput = MandatoryInput> {
 
   addResetButton() {
     if (!this.isOptional) return
-    let tooltip: string = this.data.current ? `Reset to: ${this.data.current}` : `Reset`
+    const backupValue: string = typeof this.data.current === 'boolean' || this.data.current ? `${this.data.current}` : 'none'
+    let tooltip: string = `Reset to: ${backupValue}`
     this.setting.addExtraButton(eb =>
       eb.setIcon('lucide-rotate-ccw')
       .setTooltip(tooltip, {delay: -1})
