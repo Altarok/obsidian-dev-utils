@@ -4,7 +4,7 @@ import {
   DropdownMultiInput, ExpandableInput, GenericModalInput,
   MandatoryInput, NonExpandableInput, OptionalInput, OutputData,
   SelectorContext, SliderInput, StringInput
-} from "./code-block-creator-types";
+} from './code-block-creator-types'
 
 
 const toRecord = (strings: readonly string[]): Record<string, string> => Object.fromEntries(strings.map(s => [s, s]))
@@ -155,7 +155,7 @@ class ExpandableSelector {
   private toggleActive: boolean = false
   private hasBuilt: boolean = false
   private bc?: ExtraButtonComponent
-  private wrapperEl!: HTMLDivElement;
+  private wrapperEl!: HTMLDivElement
 
   constructor(public contentEl: HTMLElement,
               public data: ExpandableInput,

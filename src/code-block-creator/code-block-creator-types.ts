@@ -1,21 +1,21 @@
 import {Setting, SliderComponent, ToggleComponent, ValueComponent} from 'obsidian'
-import {GenericModal} from "./code-block-creator-modal";
+import {GenericModal} from './code-block-creator-modal'
 
 export type OutputData = string | boolean | number | undefined
 
 export type Input = { type: string; prompt: string }
 export type BaseInput = Input & {
-  key: string;
-  ignoreKeyInCodeBlock?: boolean;
-  tooltip?: string;
+  key: string
+  ignoreKeyInCodeBlock?: boolean
+  tooltip?: string
   current?: boolean | number | string
 }
 export type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
 export type ColorInput = BaseInput & { type: 'color'; current: string }
 export type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
 export type DropdownMultiInput = BaseInput & {
-  type: 'dropdown-multi';
-  current: never;
+  type: 'dropdown-multi'
+  current: never
   dropdownOptions: readonly string[]
 }
 export type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
