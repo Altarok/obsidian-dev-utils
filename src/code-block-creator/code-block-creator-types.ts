@@ -1,26 +1,47 @@
-import {Setting, SliderComponent, ToggleComponent, ValueComponent} from 'obsidian'
+import {SliderComponent, ToggleComponent, ValueComponent} from 'obsidian'
 import {GenericModal} from './code-block-creator-modal'
 
 export type OutputData = string | boolean | number | undefined
 
-export type Input = { type: string; prompt: string }
+export type Input = {
+  type: string
+  prompt: string
+}
 export type BaseInput = Input & {
   key: string
   ignoreKeyInCodeBlock?: boolean
   tooltip?: string
-  current?: boolean | number | string
+  current?: OutputData
 }
-export type BooleanInput = BaseInput & { type: 'boolean'; current: boolean }
-export type ColorInput = BaseInput & { type: 'color'; current: string }
-export type DropdownInput = BaseInput & { type: 'dropdown'; current: string; dropdownOptions: readonly string[] }
+export type BooleanInput = BaseInput & {
+  type: 'boolean'
+  current: boolean
+}
+export type ColorInput = BaseInput & {
+  type: 'color'
+  current: string
+}
+export type ConditionalInput = BaseInput & {
+  type: 'conditional'
+  subPrompt: string
+  nestedInput: {key: string, dropdownOptions: string[] | Record<string,string>}[]
+}
+// TODO add resetOnCurrent?: boolean
+export type DropdownInput = BaseInput & {
+  type: 'dropdown'; current: string; dropdownOptions: readonly string[]
+}
 export type DropdownMultiInput = BaseInput & {
-  type: 'dropdown-multi'
-  current: never
-  dropdownOptions: readonly string[]
+  type: 'dropdownMulti'; current: string; resetOnCurrent: boolean; dropdownOptions: readonly string[] | Record<string,string>
 }
-export type SliderInput = BaseInput & { type: 'slider'; current: number; from: number; to: number; step: number }
-export type StringInput = BaseInput & { type: 'string'; current: string; validationPattern?: RegExp }
-export type ExpandableInput = Input & { type: 'expandable'; nestedInput: readonly OptionalInput[] }
+export type SliderInput = BaseInput & {
+  type: 'slider'; current: number; from: number; to: number; step: number
+}
+export type StringInput = BaseInput & {
+  type: 'string'; current: string; validationPattern?: RegExp
+}
+export type ExpandableInput = Input & {
+  type: 'expandable'; nestedInput: readonly MandatoryInput[]
+}
 
 export type NonExpandableInput =
   BooleanInput
@@ -29,11 +50,10 @@ export type NonExpandableInput =
   | DropdownMultiInput
   | SliderInput
   | StringInput
+  | ConditionalInput
 
 export type MandatoryInput = Readonly<NonExpandableInput>
 export type OptionalInput = Readonly<NonExpandableInput | ExpandableInput>
-
-export type AnyInput = MandatoryInput | OptionalInput
 
 export type GenericModalInput = {
   readonly title?: string
@@ -47,7 +67,7 @@ export type GenericModalInput = {
 }
 
 export type SelectorContext = {
-  setting: Setting
+  contentEl: HTMLElement
   input: NonExpandableInput
   output: Record<string, OutputData>
   callback: GenericModal
