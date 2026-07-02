@@ -11,7 +11,7 @@ Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier d
  * dass jede Zeile aus einem Key-Value-Paar besteht.
  * dass es für jedes Paar einen Standard-Wert gibt, welcher im Codeblock nicht explizit angezeigt werden muss. *(wip: konfigurierbar machen)*
 
-Dem Code Block Creator wird hierfür ein editierbarer Record<string, string | number | boolean | undefined> mitgegeben, welchen selbiger mit den Eingaben des Nutzers befüllt. Die Keys des Records gleichen hier den Keys des Codeblocks.
+Dem Code Block Creator wird hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben, welchen selbiger mit den Eingaben des Nutzers befüllt. Die Keys des Records gleichen hier den Keys des Codeblocks.
 
 > [!NOTE]
 > **Begründung:**
