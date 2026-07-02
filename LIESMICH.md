@@ -15,6 +15,8 @@ Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | n
 Die Keys des `Record` gleichen hier den Keys des Codeblocks.
 
 > [!INFO]
+> Begründung
+> 
 > Es mitzugeben dient dem Aufrufer konstant auf den Output zugreifen zu können. Auf Basis dessen kann eine Callback Funktion erstellt werden welche den momentanen Stand jederzeit in ein live Preview verwandeln kann.
 
 Dieses Code Snippet soll dabei helfen diese zu befüllen. Fertige Codeblöcke können im Popup in die Zwischenablage kopiert oder direkt in die gerade offene Datei geschrieben werden. Vorraussetzung hierfür ist, dass es sich um eine Markdown Datei handelt welche gerade editierbar ist.
