@@ -9,17 +9,24 @@ Ein beliebig konfigurierbares Popup ("Modal" in Obsidiansprache) welches Usern e
 
 Alle nötigen Konfigurationen und gewünschten Outputs werden vom nutzenden Plugin definiert, nicht unähnlich zu Obsidians Settings Popups.
 
+Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier davon ausgegangen, dass jede Zeile aus einem Key-Value-Paar besteht. 
+
+Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben welche selbiger mit den einfachen des Nutzers befüllt.
+Die Keys des `Record` gleichen hier den Keys des Codeblocks.
+
+Dieses Code Snippet soll dabei helfen diese zu befüllen. Fertige Codeblöcke können im Popup in die Zwischenablage kopiert oder direkt in die gerade offene Datei geschrieben werden. Vorraussetzung hierfür ist, dass es sich um eine Markdown Datei handelt welche gerade editierbar ist.
+
 
 > [!NOTE] 
 > Farbauswahl
 > 
 > Input:
 > ```typescript
->    type: 'color' // fixer Wert
->    prompt: 'Hintergrundfarbe' // Beispiel
->    key: 'bgColor' // Key für Codeblock 
->    current: '#bada55' // Startwert für Farbauswahl. Im Codeblock wird später stehen: `bgColor: #bada55`
->    ignoreKeyInCodeBlock: true | false // Optional! False wenn nicht angegeben. True würde das obige Beispiel ändern zu: `#bada55` (ohne `bgColor: `)
+>   type: 'color' // fixer Wert
+>   prompt: 'Hintergrundfarbe' // Beispiel
+>   key: 'bgColor' // Key für Codeblock 
+>   current: '#bada55' // Startwert für Farbauswahl. Im Codeblock wird später stehen: `bgColor: #bada55`
+>   ignoreKeyInCodeBlock: true | false // Optional! False wenn nicht angegeben. True würde das obige Beispiel ändern zu: `#bada55` (ohne `bgColor: `)
 >   tooltip: 'Ändert Hintergrundfarbe' // Beispiel. Optional! Wird angezeigt wenn Maus über Reset-Button liegt
 > ```
 > 
