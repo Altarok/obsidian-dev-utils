@@ -7,9 +7,13 @@ Dieses Repository enthält nützliche Code Snippets zum Entwickeln von Plugins f
 # Code Block Creator
 Ein beliebig konfigurierbares Popup ("Modal" in Obsidiansprache) welches Usern erlaubt mehrere Code Blocks in schneller Abfolge zu erstellen. 
 
-Alle nötigen Konfigurationen und gewünschten Outputs werden vom nutzenden Plugin definiert, nicht unähnlich zu Obsidians Settings Popups.
+Alle nötigen Konfigurationen und gewünschten Outputs werden vom nutzenden Plugin definiert, nicht unähnlich zu Obsidians Settings Popup.
 
-Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier davon ausgegangen, dass jede Zeile aus einem Key-Value-Paar besteht. 
+Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier davon ausgegangen, ..
+
+- dass jede Zeile aus einem Key-Value-Paar besteht.
+- dass es für jedes Paar einen Standard Wert gibt welcher im Codeblock nicht explizit angezeigt werden muss. (wip: konfigurierbar machen)
+
 
 Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben welche selbiger mit den Eingaben des Nutzers befüllt.
 Die Keys des `Record` gleichen hier den Keys des Codeblocks.
