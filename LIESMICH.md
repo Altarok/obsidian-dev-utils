@@ -11,8 +11,11 @@ Alle nötigen Konfigurationen und gewünschten Outputs werden vom nutzenden Plug
 
 Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier davon ausgegangen, dass jede Zeile aus einem Key-Value-Paar besteht. 
 
-Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben welche selbiger mit den einfachen des Nutzers befüllt.
+Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben welche selbiger mit den Eingaben des Nutzers befüllt.
 Die Keys des `Record` gleichen hier den Keys des Codeblocks.
+
+> [!INFO]
+> Es mitzugeben dient dem Aufrufer konstant auf den Output zugreifen zu können. Auf Basis dessen kann eine Callback Funktion erstellt werden welche den momentanen Stand jederzeit in ein live Preview verwandeln kann.
 
 Dieses Code Snippet soll dabei helfen diese zu befüllen. Fertige Codeblöcke können im Popup in die Zwischenablage kopiert oder direkt in die gerade offene Datei geschrieben werden. Vorraussetzung hierfür ist, dass es sich um eine Markdown Datei handelt welche gerade editierbar ist.
 
