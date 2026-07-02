@@ -6,5 +6,5 @@ Dieses Repository enthält nützliche Code Snippets zum Entwickeln von Plugins f
 
 # Generic Code Block Creator Modal (Popup)
 
-> [!info] A call-out
+> [!INFO] A call-out
 > Test
