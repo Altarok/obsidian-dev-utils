@@ -25,7 +25,7 @@ Jeder Selektor besitzt folgende **Basiseigenschaften**:
  * ignoreKeyInCodeBlock?: boolean *(Optional)* — Wenn true, wird nur der Wert ohne key: in den Codeblock geschrieben.
  * tooltip?: string *(Optional)* — Der Hover-Text für den Reset-Button.
 ### Farbauswahl (color)
-Erzeugt einen nativen Farbpiwcker.
+Erzeugt einen nativen Farbpicker.
 ```typescript
 {
   type: 'color',
