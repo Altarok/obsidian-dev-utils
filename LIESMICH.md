@@ -14,7 +14,7 @@ Codeblöcke können natürlich leer gelassen werden. Darüber hinaus wird hier d
 Dem Code Block Creator word hierfür ein editierbarer `Record<string, string | number | boolean | undefined>` mitgegeben welche selbiger mit den Eingaben des Nutzers befüllt.
 Die Keys des `Record` gleichen hier den Keys des Codeblocks.
 
-> [!INFO]
+> [!NOTE]
 > Begründung
 > 
 > Es mitzugeben dient dem Aufrufer konstant auf den Output zugreifen zu können. Auf Basis dessen kann eine Callback Funktion erstellt werden welche den momentanen Stand jederzeit in ein live Preview verwandeln kann.
