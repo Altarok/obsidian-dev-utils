@@ -133,8 +133,13 @@ Gruppiert mehrere Selektoren optisch in einem animierten Akkordeon-Container (z.
     { type: 'boolean', prompt: 'Schattierung', key: 'shadows', current: false }
   ]
 }
-
 ```
+> [!NOTE]
+> **Hinweis**:
+> Werden mehrere Ausklappbare Gruppen erstellt, kann nicht mehr als eine Gruppe gleichzeitig ausgeklappt sein. Das Öffnen einer schließt die zuletzt geöffnete Gruppe
+
+
 ## Geplante Features & Roadmap
  * [ ] **Custom Trennzeichen (separator):** standardmäßig werden Key und Value im Codeblock mit einem Doppelpunkt getrennt (key: value). Es wird ein optionaler Parameter separator auf Formular- oder Feldebene eingeführt, um beispielsweise Zuweisungen per Gleichheitszeichen (key=value) oder Whitespace zu erlauben.
  * [ ] **Zustandsbasiertes Reset (resetOnCurrent):** Verfeinerung des automatischen Ausblendens von Werten im Codeblock, wenn sie dem definierten Standardwert entsprechen.
+ * [ ] **Ausklappbare Gruppen erweitern**: Option anbieten eine ausklappbare Gruppe zu Beginn direkt zu öffnen.
