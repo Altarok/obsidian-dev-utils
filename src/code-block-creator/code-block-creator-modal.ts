@@ -90,8 +90,8 @@ abstract class Selector<T extends MandatoryInput = MandatoryInput> {
     let tooltip: string = `Reset to: ${backupValue}`
     setting.addExtraButton(eb =>
       eb.setIcon('lucide-rotate-ccw')
-      .setTooltip(tooltip, {delay: -1})
-      .onClick(() => this.revert()))
+        .setTooltip(tooltip, {delay: -1})
+        .onClick(() => this.revert()))
   }
 
   resetValueToCurrent(): void {
@@ -128,7 +128,7 @@ class ColorSelector extends Selector<ColorInput> {
     super.addName()
     setting.addColorPicker(c => this.resettableComponent =
       c.setValue(data.current)
-      .onChange(value => this.write(value)))
+        .onChange(value => this.write(value)))
     this.addResetButton()
   }
 }
@@ -162,7 +162,7 @@ class ConditionalSelector extends Selector<ConditionalInput> {
     super.addName()
     setting.addDropdown(dd => this.outerDropdown =
       dd.addOptions(toRecord(this.outerDropdownOptions))
-      .setValue(initialSelection))
+        .setValue(initialSelection))
 
     const setupInnerDropdownWithOuterSelection = (outerSelection: string): void => {
 
@@ -171,8 +171,8 @@ class ConditionalSelector extends Selector<ConditionalInput> {
       const currentSelection = (this.output[this.data.key] as string) || 'none'
 
       this.innerDropdown.addOptions(toRecord(matchingOptions))
-      .setValue(currentSelection)
-      .onChange(val => this.write(val))
+        .setValue(currentSelection)
+        .onChange(val => this.write(val))
     }
 
     setupInnerDropdownWithOuterSelection(initialSelection)
@@ -193,7 +193,7 @@ class DropdownSelector extends Selector<DropdownInput> {
     super.addName()
     setting.addDropdown(dd => this.resettableComponent =
       dd.addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-      .onChange((value: string) => this.write(value))
+        .onChange((value: string) => this.write(value))
     )
     this.addResetButton()
   }
@@ -211,14 +211,14 @@ class DropdownMultiSelector extends Selector<DropdownMultiInput> {
 
     setting.addDropdown(button => this.dropdownComponent =
       button
-      .addOptions(toRecord(data.dropdownOptions))
-      .onChange((value: string) => {
-        if (value === data.current) this.selections = []
-        else this.selections.remove(data.current)
-        if (!this.selections.includes(value)) this.selections.push(value)
-        const concatenatedSelections: string = this.selections.join(this.separator)
-        this.write(concatenatedSelections)
-      })
+        .addOptions(toRecord(data.dropdownOptions))
+        .onChange((value: string) => {
+          if (value === data.current) this.selections = []
+          else this.selections.remove(data.current)
+          if (!this.selections.includes(value)) this.selections.push(value)
+          const concatenatedSelections: string = this.selections.join(this.separator)
+          this.write(concatenatedSelections)
+        })
     )
 
     this.addResetButton()
@@ -332,7 +332,7 @@ class SliderSelector extends Selector<SliderInput> {
 
     setting.addSlider(sc => this.resettableComponent =
       sc.setValue(data.current).setLimits(lowerBound, upperBound, data.step)
-      .onChange((value: number) => this.write(value))
+        .onChange((value: number) => this.write(value))
     )
 
     super.addResetButton()
@@ -357,7 +357,7 @@ export class GenericModal {
   private previewContainerEl!: HTMLDivElement
   private adjustHeight!: () => void
   private expandableSelectors: ExpandableSelector[] = []
-  private isEditableMarkdownFile: boolean = false
+  private isEditableMarkdownFile: boolean
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
     const localApp = (window as unknown as ObsidianWindow).app
@@ -365,7 +365,7 @@ export class GenericModal {
       && localApp.workspace.getActiveViewOfType(MarkdownView)?.getState().mode === 'source'
   }
 
-  private createSelectors(inputs: readonly OptionalInput[], isOptional: boolean) {
+  private createSelectors(isOptional: boolean, inputs: readonly OptionalInput[]) {
     const {contentEl, data} = this
     const output = data.output
 
@@ -393,11 +393,11 @@ export class GenericModal {
   display() {
     const {contentEl, data} = this
 
-    const headingText = data.title ?? (data.pluginName ? `[${data.pluginName}] Code block creator` : 'Code block creator')
+    const headingText = data.pluginName ? `[${data.pluginName}] Code block creator` : 'Code block creator'
     new Setting(contentEl).setName(headingText).setHeading()
 
-    this.createSelectors(data.mandatory, false)
-    this.createSelectors(data.optional, true)
+    this.createSelectors(false, data.input.filter(d => d.mandatory))
+    this.createSelectors(true, data.input.filter(d => !d.mandatory))
 
     /* create live SVG */
     this.previewContainerEl = contentEl.createDiv()
@@ -416,22 +416,22 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlock()
 
     const setting = new Setting(this.contentEl).setName('Output')
-    .addTextArea(cb => {
-      cb.setValue(codeBlockContent).setDisabled(true)
-      this.textElement = cb.inputEl
-      cb.inputEl.style.width = '100%'
-      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-    }).addExtraButton(bc => bc
-      .setIcon('copy')
-      .onClick(async () => this.copyToClipboard())
-      .setTooltip('Copy code block to clipboard', {'delay': -1})
-    ).addExtraButton(bc => bc
-      .setIcon(this.isEditableMarkdownFile ? 'save' : 'save-off')
-      .onClick(async () => this.saveToOpenFile())
-      .setTooltip(this.isEditableMarkdownFile ? 'Save to note' : 'Can only save to editable Markdown note', {'delay': -1})
-      // .setDisabled(!this.isEditableMarkdownFile)
-    )
+      .addTextArea(cb => {
+        cb.setValue(codeBlockContent).setDisabled(true)
+        this.textElement = cb.inputEl
+        cb.inputEl.style.width = '100%'
+        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+      }).addExtraButton(bc => bc
+        .setIcon('copy')
+        .onClick(async () => this.copyToClipboard())
+        .setTooltip('Copy code block to clipboard', {'delay': -1})
+      ).addExtraButton(bc => bc
+          .setIcon(this.isEditableMarkdownFile ? 'save' : 'save-off')
+          .onClick(async () => this.saveToOpenFile())
+          .setTooltip(this.isEditableMarkdownFile ? 'Save to note' : 'Can only save to editable Markdown note', {'delay': -1})
+        // .setDisabled(!this.isEditableMarkdownFile)
+      )
 
 
     this.adjustHeight = () => {
@@ -493,30 +493,30 @@ export class GenericModal {
     }
   }
 
-  flattenInput(inputs: readonly OptionalInput[]): NonExpandableInput[] {
-    return inputs.flatMap(input =>
-      input.type === 'expandable' ? this.flattenInput(input.nestedInput) : [input]
-    )
+  private flattenInput(inputs: readonly OptionalInput[]): NonExpandableInput[] {
+    return inputs.flatMap(input => input.type === 'expandable' ? this.flattenInput(input.nestedInput) : [input])
   }
 
   private createCodeBlock = (): string => {
-    const {codeBlockId, mandatory, optional, output} = this.data
+    const {codeBlockId, input, output} = this.data
 
-    // Keep only mandatory input needed for code block
-    const activeMandatory: MandatoryInput[] = mandatory.filter(m => output[m.key])
+    const allFlatSettings: NonExpandableInput[] = this.flattenInput(input)
 
-    const allFlatSettings: NonExpandableInput[] = this.flattenInput([...activeMandatory, ...optional])
+    const allFlatSettingsOfInterest: NonExpandableInput[] = allFlatSettings.filter(m => output[m.key])
 
-    let codeBlockContent: string = allFlatSettings
-    .filter(setting => { // keep only valid non-default values
-      const localValue = output[setting.key]
-      return localValue !== undefined && localValue !== '' && localValue !== setting.current
-    })
-    .map(setting => { // add key prefix if wanted
-      const localValue = output[setting.key]
-      return setting.ignoreKeyInCodeBlock ? `${localValue}` : `${setting.key}: ${localValue}`
-    })
-    .join('\n')
+    const sortedFlatSettingsOfInterest: NonExpandableInput[] = allFlatSettingsOfInterest.sort((a, b) =>
+      a.mandatory === b.mandatory ? 0 : a.mandatory ? 1 : -1)
+
+    let codeBlockContent: string = sortedFlatSettingsOfInterest
+      .filter(setting => { // keep only valid non-default values
+        const localValue = output[setting.key]
+        return localValue !== undefined && localValue !== '' && localValue !== setting.current
+      })
+      .map(setting => { // add key prefix if wanted
+        const localValue = output[setting.key]
+        return setting.ignoreKeyInCodeBlock ? `${localValue}` : `${setting.key}: ${localValue}`
+      })
+      .join('\n')
 
     if (codeBlockContent.length > 0) codeBlockContent += '\n'
 
