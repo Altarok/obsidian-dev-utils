@@ -1,7 +1,13 @@
+# obsidian-dev-utils
+
 Dieses Repository enthält nützliche Code Snippets zum Entwickeln von Plugins für Obsidian.
+
+> [!NOTE]
+> Alle Use-Cases wurden aus Eigeninteresse erstellt, Feedback und Vorschläge sind willkommen.
+
 # MOC (Table of Contents)
- * Code Block Creator
- * ... *more to come*
+- Code Block Creator
+- ... *more to come*
 # Code Block Creator für Obsidian
 Ein abstrahiertes UI-Formular-Framework (`GenericModal`) für Obsidian-Plugins, das die Erstellung komplexer Codeblöcke in schneller Abfolge ermöglicht.
 Das System spiegelt das Verhalten der nativen Obsidian-Settings in groben Zügen wider.
