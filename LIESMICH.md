@@ -24,7 +24,7 @@ Jeder Selektor besitzt folgende **Basiseigenschaften**:
  * prompt: string — Die Beschriftung im UI.
  * key: string — Der Schlüssel, der im finalen Codeblock und im Output-Record landet.
  * current: OutputData — Der Standard- bzw. Initialwert.
- * ignoreKeyInCodeBlock?: boolean *(Optional)* — Wenn true, wird nur der Wert ohne key: in den Codeblock geschrieben.
+ * ignoreKeyInCodeBlock?: boolean *(Optional)* — Wenn true, wird nur der Wert ohne `'key: '` in den Codeblock geschrieben.
  * tooltip?: string *(Optional)* — Der Hover-Text für den Reset-Button.
 ### Farbauswahl (color)
 Erzeugt einen nativen Farbpicker.
