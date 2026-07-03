@@ -4,7 +4,7 @@ import {GenericModal} from './code-block-creator-modal'
 export type OutputData = string | boolean | number | undefined
 
 export type Input = {
-  type: string
+  type: 'boolean' | 'color' | 'conditional' | 'dropdown' | 'dropdownMulti' | 'slider' | 'string' | 'expandable'
   prompt: string
 }
 export type BaseInput = Input & {
