@@ -176,6 +176,10 @@ Kapselt eine Liste von anderen Elementen innerhalb einer kollabierbaren Gruppe.
 - **UX / Mobile Optimierung**: Das Modal erzwingt ein Akkordeon-Verhalten über `collapseOtherExpandableSelectors()`. Das Öffnen einer Gruppe schließt alle anderen parallel geöffneten Instanzen, um UI-Overflows auf mobilen Obsidian-Clients (iOS/Android Viewports) zu verhindern.
 
 ## Geplante Features & Roadmap
- * [ ] **Custom Trennzeichen (separator):** Standardmäßig werden Key und Value im Codeblock mit einem Doppelpunkt getrennt (`key: value`). Es wird ein optionaler Parameter separator auf Formular- oder Feldebene eingeführt, um beispielsweise Zuweisungen per Gleichheitszeichen (`key=value`) oder Whitespace zu erlauben.
- * [ ] **Zustandsbasiertes Reset (resetOnCurrent):** Verfeinerung des automatischen Ausblendens von Werten im Codeblock, wenn sie dem vordefinierten Standardwert entsprechen.
- * [ ] **Ausklappbare Gruppen erweitern**: Option anbieten eine ausklappbare Gruppe zu Beginn direkt zu öffnen.
+- [ ] **Custom Trennzeichen (separator):** Standardmäßig werden Key und Value im Codeblock mit einem Doppelpunkt getrennt (`key: value`). Es wird ein optionaler Parameter separator auf Formular- oder Feldebene eingeführt, um beispielsweise Zuweisungen per Gleichheitszeichen (`key=value`) oder Whitespace zu erlauben.
+- [ ] **Zustandsbasiertes Reset (resetOnCurrent):** Verfeinerung des automatischen Ausblendens von Werten im Codeblock, wenn sie dem vordefinierten Standardwert entsprechen.
+- [ ] **Ausklappbare Gruppen erweitern**: Option anbieten eine ausklappbare Gruppe zu Beginn direkt zu öffnen.-
+- [ ] **Native Picker für Auswahl-Inputs (`date` / `path` / `file`):**
+  * **Date Picker:** Integration einer nativen Datumsauswahl zur Rückgabe sauberer ISO-Strings, um Format- und Validierungsfehler über Regex-Textfelder zu verhindern.
+  * **Path Picker:** Implementierung einer Ordnerpfad-Auswahl, die sich an Obsidians interne Autovervollständigung anhängt, damit Pfadangaben fehlerfrei erfasst werden können.
+  * **File Picker:** Bereitstellung eines Datei-Autokomplettierungs-Feldes auf Basis von Obsidians `AbstractInputSuggest`-API, um interne Vault-Links direkt in die Codeblock-Parameter zu übergeben.
