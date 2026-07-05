@@ -34,7 +34,7 @@ export type ExpandableInput = Input & {
   type: 'expandable'; mandatory: false; nestedInput: readonly MandatoryInput[]
 }
 export type PathInput = BaseInput & {
-  type: 'path' // ; current: string
+  type: 'path'
 }
 export type SliderInput = BaseInput & {
   type: 'slider'; current: number; from: number; to: number; step: number

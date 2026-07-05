@@ -51,7 +51,6 @@ const SelectorRegistry: Record<string, (ctx: SelectorContext) => Selector> = {
   string: ctx => new StringSelector(ctx)
 }
 
-
 abstract class Selector<T extends MandatoryInput = MandatoryInput> {
   readonly contentEl: HTMLElement
   readonly data: T
@@ -337,9 +336,17 @@ class PathSelector extends Selector<StringInput> {
   constructor(ctx: SelectorContext) {
     super(ctx)
     const paths: CurrentPaths = getPaths()
-    this.dropdownOptions = {'/': '/ (root)', ...toRecord(paths.pathsInVault)}
-    this.data.current = paths.pathOfOpenFile ?? '/'
-    this.data.tooltip = 'Pre-set to path of currently open file.'
+    this.dropdownOptions = {'root': '[ root ]', ...toRecord(paths.pathsInVault)}
+    if (paths.pathOfOpenFile) {
+      this.data.current = paths.pathOfOpenFile
+      this.data.tooltip = `Pre-set to path of currently open file: ${this.data.current}`
+      if (paths.pathOfOpenFile in this.dropdownOptions) {
+        this.dropdownOptions[paths.pathOfOpenFile] = this.dropdownOptions[paths.pathOfOpenFile] + ' -- [ local folder ]'
+      }
+    } else {
+      this.data.current = '/'
+    }
+
   }
 
   draw() {
