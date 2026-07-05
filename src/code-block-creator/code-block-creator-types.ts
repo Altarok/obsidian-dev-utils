@@ -31,7 +31,8 @@ export type DropdownMultiInput = BaseInput & {
   dropdownOptions: readonly string[] | Record<string, string>
 }
 export type ExpandableInput = Input & {
-  type: 'expandable'; mandatory: false; nestedInput: readonly MandatoryInput[]
+  type: 'expandable'; mandatory: false; openOnStart?: boolean;
+  nestedInput: readonly MandatoryInput[]
 }
 export type PathInput = BaseInput & {
   type: 'path'
