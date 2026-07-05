@@ -4,7 +4,7 @@ import {GenericModal} from './code-block-creator-modal'
 export type OutputData = string | boolean | number | undefined
 
 export type Input = {
-  type: 'boolean' | 'color' | 'conditional' | 'dropdown' | 'dropdownMulti' | 'slider' | 'string' | 'expandable'
+  type: 'boolean' | 'color' | 'conditional' | 'dropdown' | 'dropdownMulti' | 'path' | 'slider' | 'string' | 'expandable'
   prompt: string
   mandatory?: boolean
 }
@@ -30,14 +30,17 @@ export type DropdownMultiInput = BaseInput & {
   resetOnCurrent: boolean;
   dropdownOptions: readonly string[] | Record<string, string>
 }
+export type ExpandableInput = Input & {
+  type: 'expandable'; mandatory: false; nestedInput: readonly MandatoryInput[]
+}
+export type PathInput = BaseInput & {
+  type: 'path' // ; current: string
+}
 export type SliderInput = BaseInput & {
   type: 'slider'; current: number; from: number; to: number; step: number
 }
 export type StringInput = BaseInput & {
   type: 'string'; current: string; validationPattern?: RegExp
-}
-export type ExpandableInput = Input & {
-  type: 'expandable'; mandatory: false; nestedInput: readonly MandatoryInput[]
 }
 
 export type NonExpandableInput =
@@ -45,6 +48,7 @@ export type NonExpandableInput =
   | ColorInput
   | DropdownInput
   | DropdownMultiInput
+  | PathInput
   | SliderInput
   | StringInput
   | ConditionalInput
