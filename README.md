@@ -217,11 +217,10 @@ Capsules a nested collection of other input nodes within a collapsible `SettingG
 ---
 
 ## Planned Features & Roadmap
-
-* [ ] **Custom Separator Handling:** By default, keys and values are serialized with a colon delimiter (`key: value`). An optional `separator` configuration parameter will be introduced at the form or field level to support alternative assignments like equals signs (`key=value`) or whitespace.
-* [ ] **State-Based Resets (`resetOnCurrent`):** Further refinements to automatically exclude parameters from the generated code block when their value matches the predefined default value.
-* [ ] **Expanded Accordion Controls:** Provide a flag to initialize an expandable layout group in an open state by default.
-* [ ] **Native Picker Selection Inputs (`date` / `path` / `file`):**
-  * **Date Picker:** Integrate a native date selector interface to return clean ISO strings without risking format/string-parsing regex failures.
-  * **Path Picker:** Add a system to query vault paths using Obsidian's internal auto-completion directories to let developers specify folder strings safely.
-  * **File Picker:** Implement a link/file autocomplete selector utilizing Obsidian's `AbstractInputSuggest` API to link files directly inside the generated block parameters.
+- [ ] **Custom Separator Handling:** By default, keys and values are serialized with a colon delimiter (`key: value`). An optional `separator` configuration parameter will be introduced at the form or field level to support alternative assignments like equals signs (`key=value`) or whitespace.
+- [ ] **State-Based Resets (`resetOnCurrent`):** Further refinements to automatically exclude parameters from the generated code block when their value matches the predefined default value.
+- [ ] **Expanded Accordion Controls:** Provide a flag to initialize an expandable layout group in an open state by default.
+- [ ] **Native Picker Selection Inputs (`date` / `path` / `file`):**
+  - [ ] **Date Picker:** Integrate a native date selector interface to return clean ISO strings without risking format/string-parsing regex failures.
+  - [x] **Path Picker:** Add a system to query vault paths using Obsidian's internal auto-completion directories to let developers specify folder strings safely.
+  - [ ] **File Picker:** Implement a link/file autocomplete selector utilizing Obsidian's `AbstractInputSuggest` API to link files directly inside the generated block parameters.
