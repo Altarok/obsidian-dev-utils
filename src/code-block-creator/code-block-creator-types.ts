@@ -14,14 +14,14 @@ export type Input = {
 }
 export type BaseInput = Input & {
   /** Key of input. Used in output Record. Also shown in code block. */
-  key: string;
+  key: string
   /** Pre-set value. Will not be shown in code block as it is presumed to be a default value.
    * Used to reduce code block size. */
   current: string | boolean | number
   /** Optional. Corresponding value would be added to code block without key-prefix. */
-  ignoreKeyInCodeBlock?: boolean;
+  ignoreKeyInCodeBlock?: boolean
   /** Optional tooltip. Would be shown under the prompt on mouse-over. */
-  tooltip?: string;
+  tooltip?: string
 }
 type StringValueInput = BaseInput & { /** Pre-selected default value. */ current: string }
 type ToggleValueInput = BaseInput & { /** Pre-selected default value. */ current: boolean }
@@ -39,28 +39,28 @@ export type ConditionalInput = BaseInput & {
   nestedInput: { key: string, dropdownOptions: string[] | Record<string, string> }[]
 }
 export type DropdownInput = StringValueInput & {
-  type: 'dropdown';
+  type: 'dropdown'
   /** Dropdown options. */
   dropdownOptions: readonly string[]
 }
-export type DropdownMultiInput = StringValueInput & { type: 'dropdownMulti';
-  resetOnCurrent: boolean;
+export type DropdownMultiInput = StringValueInput & { type: 'dropdownMulti'
+  resetOnCurrent: boolean
   dropdownOptions: readonly string[] | Record<string, string>
 }
-export type ExpandableInput = Input & {
-  type: 'expandable'; openOnStart?: boolean; mandatory: false; nestedInput: readonly MandatoryInput[]
+export type ExpandableInput = Input & {  type: 'expandable'
+  openOnStart?: boolean; mandatory: false; nestedInput: readonly MandatoryInput[]
 }
 export type PathInput = StringValueInput & { type: 'path' }
-export type SliderInput = NumberValueInput & { type: 'slider';
+export type SliderInput = NumberValueInput & { type: 'slider'
   /** Lower bound */
-  from: number;
+  from: number
   /** Upper bound */
-  to: number;
+  to: number
   /** Step range */
   step: number
 }
 export type StringInput = StringValueInput & {
-  type: 'string';
+  type: 'string'
   /** Optional validation pattern for string. Input must match this to be used in code block. */
   validationPattern?: RegExp
 }
