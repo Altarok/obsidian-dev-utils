@@ -30,7 +30,7 @@ type CurrentPaths = { pathsInVault: string[], pathOfOpenFile?: string }
 function getPaths(): CurrentPaths {
   return {
     pathsInVault: getApp().vault.getAllFolders(false).map(f => f.path).filter(Boolean)
-    .sort((a, b) => (a > b ? -1 : 1)),
+      .sort((a, b) => (a > b ? -1 : 1)),
     pathOfOpenFile: getApp().workspace.getActiveFile()?.parent?.path ?? undefined
   }
 }
@@ -102,8 +102,8 @@ abstract class Selector<T extends MandatoryInput = MandatoryInput> {
     let tooltip = `Reset to: ${backupValue}`
     setting.addExtraButton(eb =>
       eb.setIcon('lucide-rotate-ccw')
-      .setTooltip(tooltip, {delay: -1})
-      .onClick(() => this.revert()))
+        .setTooltip(tooltip, {delay: -1})
+        .onClick(() => this.revert()))
   }
 
   resetValueToCurrent(): void {
@@ -124,10 +124,10 @@ class BooleanSelector extends Selector<BooleanInput> {
 
     setting.addToggle(tc => this.resettableComponent =
       tc.setValue(data.current)
-      .onChange((active: boolean) => {
-        if (active === data.current) this.revert()
-        else this.write(active)
-      })
+        .onChange((active: boolean) => {
+          if (active === data.current) this.revert()
+          else this.write(active)
+        })
     )
 
     this.addResetButton()
@@ -141,7 +141,7 @@ class ColorSelector extends Selector<ColorInput> {
     super.addName()
     setting.addColorPicker(c => this.resettableComponent =
       c.setValue(data.current)
-      .onChange(value => this.write(value)))
+        .onChange(value => this.write(value)))
     this.addResetButton()
   }
 }
@@ -175,7 +175,7 @@ class ConditionalSelector extends Selector<ConditionalInput> {
     super.addName()
     setting.addDropdown(dd => this.outerDropdown =
       dd.addOptions(toRecord(this.outerDropdownOptions))
-      .setValue(initialSelection))
+        .setValue(initialSelection))
 
     const setupInnerDropdownWithOuterSelection = (outerSelection: string): void => {
 
@@ -184,8 +184,8 @@ class ConditionalSelector extends Selector<ConditionalInput> {
       const currentSelection = (this.output[this.data.key] as string) || 'none'
 
       this.innerDropdown.addOptions(toRecord(matchingOptions))
-      .setValue(currentSelection)
-      .onChange(val => this.write(val))
+        .setValue(currentSelection)
+        .onChange(val => this.write(val))
     }
 
     setupInnerDropdownWithOuterSelection(initialSelection)
@@ -206,7 +206,7 @@ class DropdownSelector extends Selector<DropdownInput> {
     super.addName()
     setting.addDropdown(dd => this.resettableComponent =
       dd.addOptions(toRecord(data.dropdownOptions)).setValue(data.current)
-      .onChange((value: string) => this.write(value))
+        .onChange((value: string) => this.write(value))
     )
     this.addResetButton()
   }
@@ -224,14 +224,14 @@ class DropdownMultiSelector extends Selector<DropdownMultiInput> {
 
     setting.addDropdown(button => this.dropdownComponent =
       button
-      .addOptions(toRecord(data.dropdownOptions))
-      .onChange((value: string) => {
-        if (value === data.current) this.selections = []
-        else this.selections.remove(data.current)
-        if (!this.selections.includes(value)) this.selections.push(value)
-        const concatenatedSelections: string = this.selections.join(this.separator)
-        this.write(concatenatedSelections)
-      })
+        .addOptions(toRecord(data.dropdownOptions))
+        .onChange((value: string) => {
+          if (value === data.current) this.selections = []
+          else this.selections.remove(data.current)
+          if (!this.selections.includes(value)) this.selections.push(value)
+          const concatenatedSelections: string = this.selections.join(this.separator)
+          this.write(concatenatedSelections)
+        })
     )
 
     this.addResetButton()
@@ -289,7 +289,7 @@ class ExpandableSelector {
 
     settingGroup.addExtraButton(bc => this.bc =
       bc.setIcon(/*data.openOnStart ? 'lucide-chevron-up' :*/ 'lucide-chevron-down')
-      .onClick(() => this.hideOrShow(!this.toggleActive))
+        .onClick(() => this.hideOrShow(!this.toggleActive))
     )
 
     // Create the outer grid container and inner content wrapper for CSS transitions
@@ -340,7 +340,9 @@ class PathSelector extends Selector<StringInput> {
     super(ctx)
     const paths: CurrentPaths = getPaths()
     this.dropdownOptions = {'root': '[ root ]', ...toRecord(paths.pathsInVault)}
-    if (paths.pathOfOpenFile) {
+    if (this.data.current && paths.pathsInVault.contains(this.data.current)) {
+      //
+    } else if (paths.pathOfOpenFile) {
       this.data.current = paths.pathOfOpenFile
       this.data.tooltip = `Pre-set to path of currently open file: ${this.data.current}`
       if (paths.pathOfOpenFile in this.dropdownOptions) {
@@ -357,11 +359,11 @@ class PathSelector extends Selector<StringInput> {
     setting.clear()
     super.addName()
     setting
-    .addDropdown(dd => this.resettableComponent =
-      dd.addOptions(toRecord(this.dropdownOptions))
-      .setValue(data.current)
-      .onChange((value: string) => this.write(value)))
-    .setTooltip(this.data.tooltip!, {delay: -1})
+      .addDropdown(dd => this.resettableComponent =
+        dd.addOptions(toRecord(this.dropdownOptions))
+          .setValue(data.current)
+          .onChange((value: string) => this.write(value)))
+      .setTooltip(this.data.tooltip!, {delay: -1})
     this.addResetButton()
   }
 }
@@ -380,8 +382,8 @@ class SliderSelector extends Selector<SliderInput> {
 
     setting.addSlider(sc => this.resettableComponent =
       sc.setValue(data.current)
-      .setLimits(lowerBound, upperBound, data.step)
-      .onChange((value: number) => this.write(value)))
+        .setLimits(lowerBound, upperBound, data.step)
+        .onChange((value: number) => this.write(value)))
 
     super.addResetButton()
   }
@@ -395,7 +397,7 @@ class StringSelector extends Selector<StringInput> {
 
     setting.addText(tc => this.resettableComponent =
       tc.setValue(data.current)
-      .onChange((value: string) => this.write(value)))
+        .onChange((value: string) => this.write(value)))
 
     super.addResetButton()
   }
@@ -465,23 +467,22 @@ export class GenericModal {
     const codeBlockContent: string = this.createCodeBlock()
 
     const setting = new Setting(this.contentEl).setName('Output')
-    .addTextArea(cb => {
-      cb.setValue(codeBlockContent).setDisabled(true)
-      this.textElement = cb.inputEl
-      cb.inputEl.style.width = '100%'
-      cb.inputEl.style.height = '80px' // Set a generous default height for the code block
-      cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
-    }).addExtraButton(bc => bc
-      .setIcon('copy')
-      .onClick(async () => this.copyToClipboard())
-      .setTooltip('Copy code block to clipboard', {'delay': -1})
-    ).addExtraButton(bc => bc
-      .setIcon(this.isEditableMarkdownFile ? 'save' : 'save-off')
-      .onClick(() => this.saveToOpenFile())
-      .setTooltip(this.isEditableMarkdownFile ? 'Save to note' : 'Can only save to editable Markdown note', {'delay': -1})
-      // .setDisabled(!this.isEditableMarkdownFile)
-    )
-
+      .addTextArea(cb => {
+        cb.setValue(codeBlockContent).setDisabled(true)
+        this.textElement = cb.inputEl
+        cb.inputEl.style.width = '100%'
+        cb.inputEl.style.height = '80px' // Set a generous default height for the code block
+        cb.inputEl.style.resize = 'vertical' // Allow the user to manually scale it vertically if they want
+      }).addExtraButton(bc => bc
+        .setIcon('copy')
+        .onClick(async () => this.copyToClipboard())
+        .setTooltip('Copy code block to clipboard', {'delay': -1})
+      ).addExtraButton(bc => bc
+          .setIcon(this.isEditableMarkdownFile ? 'save' : 'save-off')
+          .onClick(() => this.saveToOpenFile())
+          .setTooltip(this.isEditableMarkdownFile ? 'Save to note' : 'Can only save to editable Markdown note', {'delay': -1})
+        // .setDisabled(!this.isEditableMarkdownFile)
+      )
 
     this.adjustHeight = () => {
       this.textElement.style.height = 'auto'
@@ -557,15 +558,15 @@ export class GenericModal {
       a.mandatory === b.mandatory ? 0 : a.mandatory ? 1 : -1)
 
     let codeBlockContent: string = sortedFlatSettingsOfInterest
-    .filter(setting => { // keep only valid non-default values
-      const localValue = output[setting.key]
-      return localValue !== undefined && localValue !== '' && localValue !== setting.current
-    })
-    .map(setting => { // add key prefix if wanted
-      const localValue = output[setting.key]
-      return setting.ignoreKeyInCodeBlock ? `${localValue}` : `${setting.key}: ${localValue}`
-    })
-    .join('\n')
+      .filter(setting => { // keep only valid non-default values
+        const localValue = output[setting.key]
+        return localValue !== undefined && localValue !== '' && localValue !== setting.current
+      })
+      .map(setting => { // add key prefix if wanted
+        const localValue = output[setting.key]
+        return setting.ignoreKeyInCodeBlock ? `${localValue}` : `${setting.key}: ${localValue}`
+      })
+      .join('\n')
 
     if (codeBlockContent.length > 0) codeBlockContent += '\n'
 
