@@ -334,7 +334,7 @@ class ExpandableSelector {
 }
 
 class PathSelector extends Selector<StringInput> {
-  private dropdownOptions: Record<string, string>
+  private readonly dropdownOptions: Record<string, string>
 
   constructor(ctx: SelectorContext) {
     super(ctx)
@@ -408,7 +408,7 @@ export class GenericModal {
   private previewContainerEl!: HTMLDivElement
   private adjustHeight!: () => void
   private expandableSelectors: ExpandableSelector[] = []
-  private isEditableMarkdownFile: boolean
+  private readonly isEditableMarkdownFile: boolean
 
   constructor(public contentEl: HTMLElement, public data: GenericModalInput) {
     const localApp = getApp()
