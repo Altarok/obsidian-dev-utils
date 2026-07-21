@@ -35,7 +35,8 @@ export type BooleanInput = ToggleValueInput & {
 export type ColorInput = StringValueInput & { type: 'color' }
 
 export type ConditionalInput = BaseInput & {
-  type: 'conditional'; subPrompt: string
+  type: 'conditional'
+  subPrompt: string
   nestedInput: { key: string, dropdownOptions: string[] | Record<string, string> }[]
 }
 export type DropdownInput = StringValueInput & {
@@ -43,15 +44,18 @@ export type DropdownInput = StringValueInput & {
   /** Dropdown options. */
   dropdownOptions: readonly string[]
 }
-export type DropdownMultiInput = StringValueInput & { type: 'dropdownMulti'
+export type DropdownMultiInput = StringValueInput & {
+  type: 'dropdownMulti'
   resetOnCurrent: boolean
   dropdownOptions: readonly string[] | Record<string, string>
 }
-export type ExpandableInput = Input & {  type: 'expandable'
+export type ExpandableInput = Input & {
+  type: 'expandable'
   openOnStart?: boolean; mandatory: false; nestedInput: readonly MandatoryInput[]
 }
 export type PathInput = StringValueInput & { type: 'path' }
-export type SliderInput = NumberValueInput & { type: 'slider'
+export type SliderInput = NumberValueInput & {
+  type: 'slider'
   /** Lower bound */
   from: number
   /** Upper bound */
